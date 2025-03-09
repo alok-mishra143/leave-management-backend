@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum Department {
+  CSE
+  EEE
+}
+
+model Role {
+  id        String   @id @default(cuid())
+  name      String
+  priority  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String?
+  password     String
+  gender       Gender
+  image        String?
+  phone        String?
+  address      String?
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  department   Department
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  leaveRequests LeaveRequest[]
+  userLeaveTables UserLeaveTable[]
+}
+
+model LeaveRequest {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestedTo  String
+  startDate    DateTime
+  endDate      DateTime
+  status       LeaveStatus
+  reason       String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model UserLeaveTable {
+  id                   String    @id @default(cuid())
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalLeaves          Int       @default(30)
+  usedLeaves           Int       @default(0)
+  availableLeave       Int       @default(30)
+  academicYear         String
+  totalWorkingDays     Int       @default(200)
+  attendancePercentage Float     @default(100)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
