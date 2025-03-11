@@ -21,6 +21,7 @@ enum LeaveStatus {
 enum Department {
   CSE
   EEE
+  ADMIN
 }
 
 model Role {
@@ -35,12 +36,12 @@ model Role {
 model User {
   id           String     @id @default(cuid())
   email        String     @unique
-  name         String?
+  name         String
   password     String
   gender       Gender
-  image        String?
-  phone        String?
-  address      String?
+  image        String
+  phone        String
+  address      String
   roleId       String
   role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   department   Department
