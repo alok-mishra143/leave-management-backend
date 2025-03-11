@@ -37,3 +37,14 @@ export const signUpValidation = userSchema.pick({
   address: true,
   department: true,
 });
+
+export const updateUserValidation = userSchema.pick({
+  email: true,
+  name: true,
+  role: true,
+  gender: true,
+  image: true,
+  phone: true,
+  address: true,
+  department: true,
+});

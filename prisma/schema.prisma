@@ -34,34 +34,37 @@ model Role {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  name         String
-  password     String
-  gender       Gender
-  image        String
-  phone        String
-  address      String
-  roleId       String
-  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  department   Department
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  leaveRequests LeaveRequest[]
+  id              String         @id @default(cuid())
+  email           String         @unique
+  name            String
+  password        String
+  gender          Gender
+  image           String
+  phone           String
+  address         String
+  roleId          String
+  role            Role           @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  department      Department
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  leaveRequests   LeaveRequest[] @relation("UserLeaveRequests")
+  approvedLeaves  LeaveRequest[] @relation("UserApprovedLeaves")
   userLeaveTables UserLeaveTable[]
 }
 
 model LeaveRequest {
-  id           String     @id @default(cuid())
+  id           String   @id @default(cuid())
   userId       String
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation("UserLeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
   requestedTo  String
+  approveBy    String
+  approvedBy   User     @relation("UserApprovedLeaves", fields: [approveBy], references: [id], onDelete: Cascade)
   startDate    DateTime
   endDate      DateTime
   status       LeaveStatus
   reason       String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model UserLeaveTable {

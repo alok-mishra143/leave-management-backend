@@ -5,14 +5,17 @@ import {
 } from "../validations/authValidation";
 import { db } from "../db/prismaClient";
 import jwt from "jsonwebtoken";
+import { errorMeassage } from "../constants/Meassage";
+const { serverError, userError } = errorMeassage;
 
 export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const validation = loginValidation.safeParse(req.body);
     if (!validation.success) {
-      res
-        .status(400)
-        .json({ error: "Invalid input", details: validation.error.errors });
+      res.status(400).json({
+        error: userError.invalidInput,
+        details: validation.error.errors,
+      });
       return;
     }
     const { email, password } = validation.data;
@@ -23,17 +26,16 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!user) {
-      res.status(404).json({ error: "User not found" });
+      res.status(404).json({ error: userError.userNotFound });
       return;
     }
 
-    console.log("user", user);
 
     const passwordMatch = await Bun.password.verify(password, user.password);
 
     console.log("passwordMatch", passwordMatch);
     if (!passwordMatch) {
-      res.status(401).json({ error: "Invalid password" });
+      res.status(401).json({ error: userError.invalidPassword });
       return;
     }
 
@@ -43,7 +45,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!role) {
-      res.status(500).json({ error: "User role not found" });
+      res.status(500).json({ error: userError.userRoleNotFound });
       return;
     }
 
@@ -60,20 +62,20 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       maxAge: 86_400_000,
     });
 
-    res.status(200).json({ message: "Login successful", token });
+    res.status(200).json({ message: userError.loginSucessFull, token });
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: serverError.internalServerError });
   }
 };
 
 export const logOut = async (req: Request, res: Response): Promise<void> => {
   try {
     res.clearCookie("token");
-    res.status(200).json({ message: "Logout successful" });
+    res.status(200).json({ message: userError.logoutSucessFull });
   } catch (error) {
     console.error("Logout error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: serverError.internalServerError });
   }
 };
 
@@ -84,17 +86,17 @@ export const verifyToken = async (
   try {
     const { token } = req.cookies;
     if (!token) {
-      res.status(401).json({ message: "Unauthorized" });
+      res.status(401).json({ message: serverError.unauthorized });
       return;
     }
     jwt.verify(token, process.env.JWT_SECRET!, (err: any, decoded: any) => {
       if (err) {
-        res.status(401).json({ message: "Unauthorized" });
+        res.status(401).json({ message: serverError.unauthorized });
         return;
       }
       res.status(200).json({ authenticated: true, user: decoded.userData });
     });
   } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: serverError.internalServerError });
   }
 };
