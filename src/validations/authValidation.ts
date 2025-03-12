@@ -1,4 +1,4 @@
-import { Department } from "@prisma/client";
+import { Department, Gender } from "@prisma/client";
 import z from "zod";
 
 export const userSchema = z.object({
@@ -11,12 +11,12 @@ export const userSchema = z.object({
     .number()
     .min(1, "Phone must be at least 1 character long.")
     .max(9999999999, "not more then 10 number"),
-  gender: z
-    .enum(["MALE", "FEMALE"])
-    .refine((val) => val === "MALE" || val === "FEMALE", {
-      message: "Gender must be either 'MALE' or 'FEMALE'.",
-    }),
-  department: z.enum([Department.ADMIN, Department.CSE, Department.EEE]),
+  gender: z.nativeEnum(Gender, {
+    errorMap: () => ({ message: "Invalid Gender" }),
+  }),
+  department: z.nativeEnum(Department, {
+    errorMap: () => ({ message: "Invalid department" }),
+  }),
 
   image: z.string().min(1, "Image URL must be at least 1 character long."),
 });
@@ -48,3 +48,5 @@ export const updateUserValidation = userSchema.pick({
   address: true,
   department: true,
 });
+export const studentSignupValidation = signUpValidation.omit({ role: true });
+export const studentUpdateValidation = updateUserValidation;

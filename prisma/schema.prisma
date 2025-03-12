@@ -24,6 +24,11 @@ enum Department {
   ADMIN
 }
 
+enum LeaveType{
+  HALF_DAY
+  FULL_DAY
+}
+
 model Role {
   id        String   @id @default(cuid())
   name      String
@@ -57,11 +62,12 @@ model LeaveRequest {
   userId       String
   user         User     @relation("UserLeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
   requestedTo  String
-  approveBy    String
+  approveBy    String  @default("")
   approvedBy   User     @relation("UserApprovedLeaves", fields: [approveBy], references: [id], onDelete: Cascade)
   startDate    DateTime
   endDate      DateTime
   status       LeaveStatus
+  leaveType    LeaveType
   reason       String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -69,7 +75,7 @@ model LeaveRequest {
 
 model UserLeaveTable {
   id                   String    @id @default(cuid())
-  userId               String
+  userId               String    @unique
   user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   totalLeaves          Int       @default(30)
   usedLeaves           Int       @default(0)
