@@ -62,8 +62,8 @@ model LeaveRequest {
   userId       String
   user         User     @relation("UserLeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
   requestedTo  String
-  approveBy    String  @default("")
-  approvedBy   User     @relation("UserApprovedLeaves", fields: [approveBy], references: [id], onDelete: Cascade)
+  approveBy    String?  @default("")
+  approvedBy   User?    @relation("UserApprovedLeaves", fields: [approveBy], references: [id], onDelete: Cascade)
   startDate    DateTime
   endDate      DateTime
   status       LeaveStatus

@@ -136,7 +136,7 @@ export const applyLeave = async (
       return;
     }
 
-    const { endDate, leaveType, reason, requestedTo, startDate, status } =
+    const { endDate, leaveType, reason, requestedTo, startDate } =
       validation.data;
 
     const leave = await db.leaveRequest.create({
@@ -146,10 +146,13 @@ export const applyLeave = async (
         reason,
         requestedTo,
         startDate,
-        status,
+        status: "PENDING",
+        approveBy: null,
         userId: id,
       },
     });
+
+    res.status(201).json({ message: "Leave request created", leave });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: serverError.internalServerError });

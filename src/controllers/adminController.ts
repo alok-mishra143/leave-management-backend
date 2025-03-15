@@ -400,7 +400,7 @@ export const updateLeaveStatus = async (
           approveBy: decodedToken.id,
         },
       }),
-      db.userLeaveTable.updateMany({
+      db.userLeaveTable.update({
         where: { userId: existingLeave.userId },
         data: {
           availableLeave: {

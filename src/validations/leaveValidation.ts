@@ -4,8 +4,8 @@ import z from "zod";
 export const userLeaveValidationSchema = z.object({
   requestedTo: z.string().min(1, "Requested-to field is required"),
   approveBy: z.string().optional(),
-  startDate: z.date({ required_error: "Start date is required" }),
-  endDate: z.date({ required_error: "End date is required" }),
+  startDate: z.string({ required_error: "Start date is required" }),
+  endDate: z.string({ required_error: "End date is required" }),
   status: z.nativeEnum(LeaveStatus, {
     errorMap: () => ({ message: "Invalid leave status" }),
   }),
@@ -28,7 +28,6 @@ export const applyLeaveValidation = userLeaveValidationSchema.pick({
   requestedTo: true,
   startDate: true,
   endDate: true,
-  status: true,
   leaveType: true,
   reason: true,
 });
