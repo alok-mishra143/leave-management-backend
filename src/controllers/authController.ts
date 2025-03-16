@@ -30,7 +30,6 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-
     const passwordMatch = await Bun.password.verify(password, user.password);
 
     console.log("passwordMatch", passwordMatch);
@@ -89,12 +88,16 @@ export const verifyToken = async (
       res.status(401).json({ message: serverError.unauthorized });
       return;
     }
+
+    if (!process.env.JWT_SECRET) {
+      res.status(500).json({ error: serverError.internalServerError });
+    }
     jwt.verify(token, process.env.JWT_SECRET!, (err: any, decoded: any) => {
       if (err) {
         res.status(401).json({ message: serverError.unauthorized });
         return;
       }
-      res.status(200).json({ authenticated: true, user: decoded.userData });
+      res.status(200).json({ authenticated: true, user: decoded });
     });
   } catch (error) {
     res.status(500).json({ error: serverError.internalServerError });
