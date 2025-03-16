@@ -69,7 +69,7 @@ export const signUpUser = async (
     const newUser = await db.user.create({
       data: {
         email,
-        gender: gender === "MALE" ? "MALE" : "FEMALE",
+        gender: gender,
         name,
         password: hashedPassword,
         role: {
@@ -91,7 +91,11 @@ export const signUpUser = async (
       },
     });
 
-    res.status(201).json({ message: userError.userCreated, user: newUser });
+    res.status(201).json({
+      message: userError.userCreated,
+      user: newUser,
+      leaveTable: createLeaveTable,
+    });
   } catch (error) {
     console.error("Signup error:", error);
     res.status(500).json({ error: serverError.internalServerError });
@@ -320,40 +324,45 @@ export const updateLeaveStatus = async (
   res: Response
 ): Promise<void> => {
   try {
-    // Extract and validate token
+    // Validate authentication token
     const { token } = req.cookies;
     if (!token) {
       res.status(401).json({ error: serverError.tokenNotFound });
       return;
     }
 
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
-      role: string;
-      id: string;
-    };
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
+        role: string;
+        id: string;
+      };
+    } catch (error) {
+      res.status(403).json({ error: serverError.unauthorized });
+      return;
+    }
 
+    // Ensure the user has sufficient permissions
     if (!decodedToken || !["ADMIN", "TEACHER"].includes(decodedToken.role)) {
       res.status(403).json({ error: serverError.unauthorized });
       return;
     }
 
-    // Extract leaveId and status from request
+    // Extract and validate request parameters
     const { leaveId } = req.params;
     const { status } = req.body;
 
-    // Validate leave ID
     if (!leaveId) {
       res.status(400).json({ error: "Leave ID is required" });
       return;
     }
 
-    // Validate status (Ensure it's a valid enum value)
     if (!["PENDING", "APPROVED", "REJECTED"].includes(status)) {
       res.status(400).json({ error: "Invalid leave status" });
       return;
     }
 
-    // Find existing leave request
+    // Retrieve existing leave request
     const existingLeave = await db.leaveRequest.findUnique({
       where: { id: leaveId },
     });
@@ -363,16 +372,44 @@ export const updateLeaveStatus = async (
       return;
     }
 
-    // Update leave status
-    const updatedLeave = await db.leaveRequest.update({
-      where: { id: leaveId },
-      data: {
-        status,
-        approveBy: decodedToken.id,
-      },
-    });
+    if (existingLeave.status === status) {
+      res.status(400).json({ error: "Leave status is already updated" });
+      return;
+    }
 
-    // Send success response
+    // Determine the leave balance adjustment based on status change
+    let leaveAdjustment = 0;
+    if (
+      status === "APPROVED" &&
+      ["PENDING", "REJECTED"].includes(existingLeave.status)
+    ) {
+      leaveAdjustment = existingLeave.leaveType === "HALF_DAY" ? 0.5 : 1;
+    } else if (
+      ["REJECTED", "PENDING"].includes(status) &&
+      existingLeave.status === "APPROVED"
+    ) {
+      leaveAdjustment = existingLeave.leaveType === "HALF_DAY" ? -0.5 : -1;
+    }
+
+    // Update leave status and associated user leave balance within a transaction
+    const [updatedLeave] = await db.$transaction([
+      db.leaveRequest.update({
+        where: { id: leaveId },
+        data: {
+          status,
+          approveBy: decodedToken.id,
+        },
+      }),
+      db.userLeaveTable.update({
+        where: { userId: existingLeave.userId },
+        data: {
+          availableLeave: {
+            increment: leaveAdjustment,
+          },
+        },
+      }),
+    ]);
+
     res.status(200).json({
       success: true,
       message: "Leave status updated successfully",
@@ -380,6 +417,42 @@ export const updateLeaveStatus = async (
     });
   } catch (error) {
     console.error("Error updating leave status:", error);
+    res.status(500).json({ error: serverError.internalServerError });
+    return;
+  }
+};
+
+export const dashboardInfo = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const [
+      pendingCount,
+      approvedCount,
+      rejectedCount,
+      totalUsers,
+      totalLeaves,
+    ] = await Promise.all([
+      await db.leaveRequest.count({ where: { status: "PENDING" } }),
+      await db.leaveRequest.count({ where: { status: "APPROVED" } }),
+      await db.leaveRequest.count({ where: { status: "REJECTED" } }),
+      await db.user.count(),
+      await db.leaveRequest.count(),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        pendingCount,
+        approvedCount,
+        rejectedCount,
+        totalUsers,
+        totalLeaves,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching dashboard info:", error);
     res.status(500).json({ error: serverError.internalServerError });
   }
 };
