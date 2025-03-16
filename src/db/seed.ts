@@ -13,12 +13,12 @@ async function main() {
           priority: 1,
         },
         {
-          id: "3",
+          id: "2",
           name: "STUDENT",
           priority: 2,
         },
         {
-          id: "2",
+          id: "3",
           name: "TEACHER",
           priority: 3,
         },

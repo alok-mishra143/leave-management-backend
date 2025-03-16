@@ -456,3 +456,29 @@ export const dashboardInfo = async (
     res.status(500).json({ error: serverError.internalServerError });
   }
 };
+
+export const getStudents = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const students = await db.user.findMany({
+      where: { roleId: "3" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        image: true,
+      },
+    });
+
+    res.status(200).json({ success: true, data: students });
+  } catch (error) {
+    console.error("Error fetching students:", error);
+    res
+      .status(500)
+      .json({ success: false, error: serverError.internalServerError });
+  }
+};

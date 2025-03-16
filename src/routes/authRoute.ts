@@ -1,5 +1,5 @@
 import express from "express";
-import { loginUser, logOut } from "../controllers/authController";
+import { loginUser, logOut, verifyToken } from "../controllers/authController";
 
 const authRoute = express.Router();
 
@@ -9,5 +9,6 @@ authRoute.get("/", (req, res) => {
 
 authRoute.post("/login", loginUser);
 authRoute.post("/logout", logOut);
+authRoute.post("/verify", verifyToken);
 
 export default authRoute;

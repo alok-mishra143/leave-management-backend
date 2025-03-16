@@ -256,4 +256,28 @@ export const getLeaveBalance = async (
 export const getTeacherForLeave = async (
   req: Request,
   res: Response
-): Promise<void> => {};
+): Promise<void> => {
+  try {
+    const department = req.params.department?.trim();
+
+    if (
+      !department ||
+      !Object.values(Department).includes(department as Department)
+    ) {
+      res.status(400).json({ success: false, error: userError.invalidInput });
+      return;
+    }
+
+    const teachers = await db.user.findMany({
+      where: { department: department as Department },
+      select: { id: true, name: true },
+    });
+
+    res.status(200).json({ success: true, data: teachers });
+  } catch (error) {
+    console.error("Error fetching teachers for leave:", error);
+    res
+      .status(500)
+      .json({ success: false, error: serverError.internalServerError });
+  }
+};

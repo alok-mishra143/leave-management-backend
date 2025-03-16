@@ -17,3 +17,10 @@ export const errorMeassage = {
     userCreated: "User created",
   },
 };
+
+export const enum Role {
+  ADMIN = "ADMIN",
+  STUDENT = "STUDENT",
+  STAFF = "TEACHER",
+  HOD = "HOD",
+}
