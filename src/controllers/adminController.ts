@@ -43,17 +43,8 @@ export const signUpUser = async (
       return;
     }
 
-    const {
-      email,
-      gender,
-      name,
-      password,
-      role,
-      address,
-      image,
-      phone,
-      department,
-    } = validation.data;
+    const { email, gender, name, password, role, address, phone, department } =
+      validation.data;
 
     const existingUser = await db.user.findUnique({
       where: { email },
@@ -79,7 +70,7 @@ export const signUpUser = async (
         },
         department: department,
         address,
-        image,
+        image: `https://avatar.vercel.sh/${name[0]}`,
         phone: phone.toString(),
       },
     });
@@ -132,7 +123,7 @@ export const updateUser = async (
       return;
     }
 
-    const { email, address, department, gender, image, name, phone, role } =
+    const { email, address, department, gender, name, phone, role } =
       validation.data;
 
     const updateUser = await db.user.update({
@@ -143,7 +134,6 @@ export const updateUser = async (
         department,
         name,
         gender,
-        image,
         phone: phone.toString(),
         role: {
           connect: {
@@ -192,7 +182,8 @@ export const deleteUser = async (
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
     // Extract and verify token
-    const { token } = req.cookies;
+
+    const token = req.cookies?.token || req.headers?.token;
     if (!token) {
       res.status(401).json({ error: serverError.tokenNotFound });
       return;
@@ -201,6 +192,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
       role: string;
     };
+
     if (decodedToken.role !== "ADMIN") {
       res.status(403).json({ error: serverError.unauthorized });
       return;
@@ -210,6 +202,8 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
     const roleID = req.query.roleID as string | undefined;
     const limit = parseInt(req.query.limit as string) || 10;
     const page = parseInt(req.query.page as string) || 1;
+    const sort = req.query.sort as string | "asc";
+    const col = req.query.col as string | "name";
 
     // Validate pagination values
     if (limit < 1 || page < 1) {
@@ -221,7 +215,9 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
     const users = await db.user.findMany({
       where: roleID ? { role: { id: roleID } } : {}, // Filter by role if provided
       take: limit,
+
       skip: (page - 1) * limit,
+      orderBy: { [col]: sort },
       select: {
         id: true,
         name: true,
@@ -229,6 +225,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
         role: { select: { name: true } },
         department: true,
         phone: true,
+        image: true,
       },
     });
 

@@ -4,7 +4,8 @@ import jwt from "jsonwebtoken";
 export const auth = (allowedRoles: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      const token = req.cookies?.token;
+      const token = req.cookies?.token || req.headers?.token;
+
       if (!token) {
         res.status(401).json({ error: "Access denied. No token provided." });
         return; // ✅ Ensure function exits after response

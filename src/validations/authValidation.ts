@@ -17,8 +17,6 @@ export const userSchema = z.object({
   department: z.nativeEnum(Department, {
     errorMap: () => ({ message: "Invalid department" }),
   }),
-
-  image: z.string().min(1, "Image URL must be at least 1 character long."),
 });
 
 export const loginValidation = userSchema.pick({
@@ -32,7 +30,6 @@ export const signUpValidation = userSchema.pick({
   name: true,
   role: true,
   gender: true,
-  image: true,
   phone: true,
   address: true,
   department: true,
@@ -43,7 +40,6 @@ export const updateUserValidation = userSchema.pick({
   name: true,
   role: true,
   gender: true,
-  image: true,
   phone: true,
   address: true,
   department: true,

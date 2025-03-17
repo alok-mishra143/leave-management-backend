@@ -22,7 +22,14 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 
     const user = await db.user.findUnique({
       where: { email },
-      select: { id: true, email: true, password: true, roleId: true },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        roleId: true,
+        image: true,
+        name: true,
+      },
     });
 
     if (!user) {
@@ -49,7 +56,14 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: role.name },
+      {
+        id: user.id,
+        email: user.email,
+        role: role.name,
+        roleId: user.roleId,
+        image: user.image,
+        name: user.name,
+      },
       process.env.JWT_SECRET!,
       { expiresIn: "24h" }
     );
@@ -84,6 +98,32 @@ export const verifyToken = async (
 ): Promise<void> => {
   try {
     const { token } = req.cookies;
+    if (!token) {
+      res.status(401).json({ message: serverError.unauthorized });
+      return;
+    }
+
+    if (!process.env.JWT_SECRET) {
+      res.status(500).json({ error: serverError.internalServerError });
+    }
+    jwt.verify(token, process.env.JWT_SECRET!, (err: any, decoded: any) => {
+      if (err) {
+        res.status(401).json({ message: serverError.unauthorized });
+        return;
+      }
+      res.status(200).json({ authenticated: true, user: decoded });
+    });
+  } catch (error) {
+    res.status(500).json({ error: serverError.internalServerError });
+  }
+};
+
+export const GetUserRole = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { token } = req.body;
     if (!token) {
       res.status(401).json({ message: serverError.unauthorized });
       return;

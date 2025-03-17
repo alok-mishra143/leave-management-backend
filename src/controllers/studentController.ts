@@ -27,7 +27,7 @@ export const registerStudent = async (
       return;
     }
 
-    const { address, department, email, gender, image, name, password, phone } =
+    const { address, department, email, gender, name, password, phone } =
       validation.data;
 
     const existingUser = await db.user.findUnique({
@@ -47,7 +47,7 @@ export const registerStudent = async (
         department,
         email,
         gender,
-        image,
+        image: `https://avatar.vercel.sh/${name[0]}`,
         name,
         password: hash,
         phone: phone.toString(),
@@ -92,8 +92,7 @@ export const updateProfile = async (
       return;
     }
 
-    const { address, department, email, gender, image, name, phone } =
-      validation.data;
+    const { address, department, email, gender, name, phone } = validation.data;
 
     const student = await db.user.update({
       where: { email },
@@ -101,7 +100,6 @@ export const updateProfile = async (
         address,
         department,
         gender,
-        image,
         name,
         phone: phone.toString(),
       },
