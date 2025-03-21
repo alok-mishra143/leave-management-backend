@@ -14,13 +14,18 @@ async function main() {
         },
         {
           id: "2",
-          name: "STUDENT",
+          name: "HOD",
           priority: 2,
         },
         {
           id: "3",
-          name: "TEACHER",
+          name: "STAFF",
           priority: 3,
+        },
+        {
+          id: "4",
+          name: "STUDENT",
+          priority: 4,
         },
       ],
     });

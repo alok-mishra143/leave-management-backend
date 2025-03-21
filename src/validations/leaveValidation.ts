@@ -31,3 +31,11 @@ export const applyLeaveValidation = userLeaveValidationSchema.pick({
   leaveType: true,
   reason: true,
 });
+
+export const editLeaveValidation = userLeaveValidationSchema.pick({
+  requestedTo: true,
+  startDate: true,
+  endDate: true,
+  leaveType: true,
+  reason: true,
+});

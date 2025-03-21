@@ -13,7 +13,6 @@ export const auth = (allowedRoles: string[]) => {
 
       const secret = process.env.JWT_SECRET;
       if (!secret) {
-        console.error("JWT_SECRET is not defined.");
         res.status(500).json({ error: "Internal Server Error" });
         return; // ✅ Ensure function exits after response
       }
@@ -21,6 +20,7 @@ export const auth = (allowedRoles: string[]) => {
       jwt.verify(token, secret, (err: any, decoded: any) => {
         if (err) {
           res.status(401).json({ error: "Invalid or expired token." });
+          console.error("Authentication error:", err);
           return; // ✅ Ensure function exits after response
         }
 

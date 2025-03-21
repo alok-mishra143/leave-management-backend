@@ -8,7 +8,7 @@ export const userSchema = z.object({
   name: z.string().min(1, "Name must be at least 1 character long."),
   role: z.string().min(1, "Role is required."),
   phone: z
-    .number()
+    .string()
     .min(1, "Phone must be at least 1 character long.")
     .max(9999999999, "not more then 10 number"),
   gender: z.nativeEnum(Gender, {
@@ -17,6 +17,8 @@ export const userSchema = z.object({
   department: z.nativeEnum(Department, {
     errorMap: () => ({ message: "Invalid department" }),
   }),
+
+  roleId: z.string(),
 });
 
 export const loginValidation = userSchema.pick({
@@ -28,7 +30,7 @@ export const signUpValidation = userSchema.pick({
   email: true,
   password: true,
   name: true,
-  role: true,
+  roleId: true,
   gender: true,
   phone: true,
   address: true,
@@ -38,11 +40,11 @@ export const signUpValidation = userSchema.pick({
 export const updateUserValidation = userSchema.pick({
   email: true,
   name: true,
-  role: true,
+  roleId: true,
   gender: true,
   phone: true,
   address: true,
   department: true,
 });
-export const studentSignupValidation = signUpValidation.omit({ role: true });
+export const studentSignupValidation = signUpValidation.omit({ roleId: true });
 export const studentUpdateValidation = updateUserValidation;

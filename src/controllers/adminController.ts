@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { db } from "../db/prismaClient";
-import { LeaveStatus } from "@prisma/client";
+import { LeaveStatus, Prisma } from "@prisma/client";
 import {
   signUpValidation,
   updateUserValidation,
@@ -15,26 +15,6 @@ export const signUpUser = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { token } = req.cookies;
-    if (!token) {
-      res.status(401).json({ error: serverError.tokenNotFound });
-      return;
-    }
-
-    const userrole = jwt.verify(token, process.env.JWT_SECRET!) as {
-      role: string;
-    };
-
-    if (!userrole) {
-      res.status(401).json({ error: serverError.unauthorized });
-      return;
-    }
-
-    if (userrole.role !== "ADMIN") {
-      res.status(401).json({ error: serverError.unauthorized });
-      return;
-    }
-
     const validation = signUpValidation.safeParse(req.body);
     if (!validation.success) {
       res
@@ -43,8 +23,16 @@ export const signUpUser = async (
       return;
     }
 
-    const { email, gender, name, password, role, address, phone, department } =
-      validation.data;
+    const {
+      email,
+      gender,
+      name,
+      password,
+      roleId,
+      address,
+      phone,
+      department,
+    } = validation.data;
 
     const existingUser = await db.user.findUnique({
       where: { email },
@@ -65,7 +53,7 @@ export const signUpUser = async (
         password: hashedPassword,
         role: {
           connect: {
-            id: role,
+            id: roleId,
           },
         },
         department: department,
@@ -98,19 +86,6 @@ export const updateUser = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { token } = req.cookies;
-    if (!token) {
-      res.status(401).json({ error: serverError.tokenNotFound });
-      return;
-    }
-
-    const userrole = jwt.verify(token, process.env.JWT_SECRET!);
-
-    if (userrole !== "ADMIN") {
-      res.status(401).json({ error: serverError.unauthorized });
-      return;
-    }
-
     const validation = updateUserValidation.safeParse(req.body);
 
     const { id } = req.params;
@@ -123,7 +98,7 @@ export const updateUser = async (
       return;
     }
 
-    const { email, address, department, gender, name, phone, role } =
+    const { email, address, department, gender, name, phone, roleId } =
       validation.data;
 
     const updateUser = await db.user.update({
@@ -134,14 +109,15 @@ export const updateUser = async (
         department,
         name,
         gender,
-        phone: phone.toString(),
+        phone: phone,
         role: {
           connect: {
-            id: role,
+            id: roleId,
           },
         },
       },
     });
+    res.status(200).json({ message: "User updated", user: updateUser });
   } catch (error) {
     console.error("Update user error:", error);
     res.status(500).json({ error: serverError.internalServerError });
@@ -153,19 +129,6 @@ export const deleteUser = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { token } = req.cookies;
-    if (!token) {
-      res.status(401).json({ error: serverError.tokenNotFound });
-      return;
-    }
-
-    const userrole = jwt.verify(token, process.env.JWT_SECRET!);
-
-    if (userrole !== "ADMIN") {
-      res.status(401).json({ error: serverError.unauthorized });
-      return;
-    }
-
     const { id } = req.params;
 
     const deleteUser = await db.user.delete({
@@ -181,29 +144,13 @@ export const deleteUser = async (
 
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Extract and verify token
-
-    const token = req.cookies?.token || req.headers?.token;
-    if (!token) {
-      res.status(401).json({ error: serverError.tokenNotFound });
-      return;
-    }
-
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
-      role: string;
-    };
-
-    if (decodedToken.role !== "ADMIN") {
-      res.status(403).json({ error: serverError.unauthorized });
-      return;
-    }
-
     // Extract query parameters with default values
-    const roleID = req.query.roleID as string | undefined;
+    const roleID = req.query.roleID as string | "";
     const limit = parseInt(req.query.limit as string) || 10;
     const page = parseInt(req.query.page as string) || 1;
     const sort = req.query.sort as string | "asc";
     const col = req.query.col as string | "name";
+    const search = req.query.search as string | "";
 
     // Validate pagination values
     if (limit < 1 || page < 1) {
@@ -211,32 +158,59 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const roleFilter = roleID && roleID !== "All" ? { roleId: roleID } : {};
+    const searchFilter = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { email: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { phone: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            {
+              address: { contains: search, mode: Prisma.QueryMode.insensitive },
+            },
+          ],
+        }
+      : {};
+
     // Fetch users with optional role filtering and pagination
     const users = await db.user.findMany({
-      where: roleID ? { role: { id: roleID } } : {}, // Filter by role if provided
+      where: {
+        ...roleFilter,
+        ...searchFilter,
+      },
       take: limit,
-
       skip: (page - 1) * limit,
-      orderBy: { [col]: sort },
+      orderBy:
+        col === "role"
+          ? { role: { name: sort as Prisma.SortOrder } }
+          : { [col]: sort as Prisma.SortOrder },
       select: {
         id: true,
         name: true,
         email: true,
         role: { select: { name: true } },
         department: true,
+        roleId: true,
+        address: true,
         phone: true,
         image: true,
+        gender: true,
       },
     });
 
     // Count total users for pagination metadata
     const totalUsers = await db.user.count({
-      where: roleID ? { role: { id: roleID } } : {},
+      where: roleFilter,
     });
+
+    const formUsers = users.map((user) => ({
+      ...user,
+      role: user.role.name,
+    }));
 
     res.status(200).json({
       message: "Users retrieved successfully",
-      data: users,
+      data: formUsers,
       pagination: {
         total: totalUsers,
         page,
@@ -256,35 +230,99 @@ export const viewLeaves = async (
 ): Promise<void> => {
   try {
     // Extract and validate token
-    const { token } = req.cookies;
+    const token = req.cookies?.token || req.headers?.token;
     if (!token) {
       res.status(401).json({ error: serverError.tokenNotFound });
       return;
     }
 
     const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
+      id: string;
       role: string;
+      userId: string;
     };
 
-    if (!decodedToken || decodedToken.role !== "ADMIN") {
-      res.status(403).json({ error: serverError.unauthorized });
-      return;
-    }
+    const { role, id } = decodedToken;
 
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const status = req.query.status as LeaveStatus | undefined;
+    const search = req.query.search as string | "";
+    const col = req.query.col as string | "name";
+    const sort = req.query.sort as string | "asc";
 
-    // Fetch leaves with pagination
-    // Fetch leaves with pagination
+    const leaveFilter = role === "ADMIN" ? {} : { requestTo: id };
+
+    const statusFilter = status ? { status } : {};
+    const searchFilter = search
+      ? {
+          OR: [
+            {
+              user: {
+                name: { contains: search, mode: Prisma.QueryMode.insensitive },
+                email: { contains: search, mode: Prisma.QueryMode.insensitive },
+              },
+            },
+            {
+              reason: { contains: search, mode: Prisma.QueryMode.insensitive },
+            },
+          ],
+        }
+      : {};
+
+    let orderBy;
+    switch (col) {
+      case "name":
+        orderBy = { user: { name: sort as Prisma.SortOrder } };
+        break;
+      case "email":
+        orderBy = { user: { email: sort as Prisma.SortOrder } };
+        break;
+      case "requestedTo":
+        orderBy = { requestedTo: { name: sort as Prisma.SortOrder } };
+        break;
+      case "startDate":
+        orderBy = { startDate: sort as Prisma.SortOrder };
+        break;
+      case "endDate":
+        orderBy = { endDate: sort as Prisma.SortOrder };
+        break;
+      case "status":
+        orderBy = { status: sort as Prisma.SortOrder };
+        break;
+      case "reason":
+        orderBy = { reason: sort as Prisma.SortOrder };
+        break;
+      case "approvedBy":
+        orderBy = { approvedBy: { name: sort as Prisma.SortOrder } };
+        break;
+      case "leaveType":
+        orderBy = { leaveType: sort as Prisma.SortOrder };
+        break;
+      default:
+        orderBy = { createdAt: "desc" as Prisma.SortOrder }; // Default sorting by latest request
+    }
+
     const [leaves, total] = await Promise.all([
       db.leaveRequest.findMany({
+        where: {
+          ...statusFilter,
+          ...leaveFilter,
+
+          ...searchFilter,
+        },
         take: limit,
         skip: (page - 1) * limit,
-        where: status ? { status } : {},
+        orderBy,
         select: {
           id: true,
           user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+          requestedTo: {
             select: {
               name: true,
               email: true,
@@ -294,6 +332,14 @@ export const viewLeaves = async (
           endDate: true,
           status: true,
           reason: true,
+          approvedBy: {
+            select: {
+              email: true,
+              name: true,
+              id: true,
+            },
+          },
+          leaveType: true,
         },
       }),
       db.leaveRequest.count({ where: status ? { status } : {} }),
@@ -322,7 +368,8 @@ export const updateLeaveStatus = async (
 ): Promise<void> => {
   try {
     // Validate authentication token
-    const { token } = req.cookies;
+    const token = req.body.token || req.headers.token;
+
     if (!token) {
       res.status(401).json({ error: serverError.tokenNotFound });
       return;
@@ -339,17 +386,11 @@ export const updateLeaveStatus = async (
       return;
     }
 
-    // Ensure the user has sufficient permissions
-    if (!decodedToken || !["ADMIN", "TEACHER"].includes(decodedToken.role)) {
-      res.status(403).json({ error: serverError.unauthorized });
-      return;
-    }
-
     // Extract and validate request parameters
-    const { leaveId } = req.params;
+    const { id } = req.params;
     const { status } = req.body;
 
-    if (!leaveId) {
+    if (!id) {
       res.status(400).json({ error: "Leave ID is required" });
       return;
     }
@@ -361,7 +402,7 @@ export const updateLeaveStatus = async (
 
     // Retrieve existing leave request
     const existingLeave = await db.leaveRequest.findUnique({
-      where: { id: leaveId },
+      where: { id: id },
     });
 
     if (!existingLeave) {
@@ -376,22 +417,27 @@ export const updateLeaveStatus = async (
 
     // Determine the leave balance adjustment based on status change
     let leaveAdjustment = 0;
-    if (
-      status === "APPROVED" &&
-      ["PENDING", "REJECTED"].includes(existingLeave.status)
-    ) {
-      leaveAdjustment = existingLeave.leaveType === "HALF_DAY" ? 0.5 : 1;
-    } else if (
-      ["REJECTED", "PENDING"].includes(status) &&
-      existingLeave.status === "APPROVED"
-    ) {
-      leaveAdjustment = existingLeave.leaveType === "HALF_DAY" ? -0.5 : -1;
+    const leaveValue = existingLeave.leaveType === "HALF_DAY" ? 0.5 : 1;
+
+    if (existingLeave.status === "PENDING" && status === "APPROVED") {
+      leaveAdjustment = -leaveValue;
+    } else if (existingLeave.status === "PENDING" && status === "REJECTED") {
+      leaveAdjustment = 0;
+    } else if (existingLeave.status === "APPROVED" && status === "REJECTED") {
+      leaveAdjustment = leaveValue;
+    } else if (existingLeave.status === "REJECTED" && status === "APPROVED") {
+      leaveAdjustment = -leaveValue;
     }
 
+    const totalDays =
+      existingLeave.endDate.getDate() - existingLeave.startDate.getDate();
+
+    leaveAdjustment = leaveAdjustment * (totalDays + 1);
+
     // Update leave status and associated user leave balance within a transaction
-    const [updatedLeave] = await db.$transaction([
+    const [updatedLeave, newLeaveTable] = await db.$transaction([
       db.leaveRequest.update({
-        where: { id: leaveId },
+        where: { id: id },
         data: {
           status,
           approveBy: decodedToken.id,
@@ -411,6 +457,7 @@ export const updateLeaveStatus = async (
       success: true,
       message: "Leave status updated successfully",
       data: updatedLeave,
+      newLeaveTable: newLeaveTable,
     });
   } catch (error) {
     console.error("Error updating leave status:", error);

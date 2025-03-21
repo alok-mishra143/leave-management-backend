@@ -54,6 +54,7 @@ model User {
   updatedAt       DateTime       @updatedAt
   leaveRequests   LeaveRequest[] @relation("UserLeaveRequests")
   approvedLeaves  LeaveRequest[] @relation("UserApprovedLeaves")
+  requestedLeaves LeaveRequest[] @relation("UserRequests")
   userLeaveTables UserLeaveTable[]
 }
 
@@ -61,7 +62,8 @@ model LeaveRequest {
   id           String   @id @default(cuid())
   userId       String
   user         User     @relation("UserLeaveRequests", fields: [userId], references: [id], onDelete: Cascade)
-  requestedTo  String
+  requestTo    String?  @default("")
+  requestedTo  User?    @relation("UserRequests", fields: [requestTo], references: [id], onDelete: Cascade)
   approveBy    String?  @default("")
   approvedBy   User?    @relation("UserApprovedLeaves", fields: [approveBy], references: [id], onDelete: Cascade)
   startDate    DateTime
@@ -78,8 +80,8 @@ model UserLeaveTable {
   userId               String    @unique
   user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   totalLeaves          Int       @default(30)
-  usedLeaves           Int       @default(0)
-  availableLeave       Int       @default(30)
+  usedLeaves           Float      @default(0)
+  availableLeave       Float       @default(30)
   academicYear         String
   totalWorkingDays     Int       @default(200)
   attendancePercentage Float     @default(100)

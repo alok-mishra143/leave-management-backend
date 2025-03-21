@@ -97,7 +97,7 @@ export const verifyToken = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { token } = req.cookies;
+    const token = req.cookies?.token || req.headers?.token;
     if (!token) {
       res.status(401).json({ message: serverError.unauthorized });
       return;
@@ -113,6 +113,8 @@ export const verifyToken = async (
       }
       res.status(200).json({ authenticated: true, user: decoded });
     });
+
+    res.status(200).json({ authenticated: true });
   } catch (error) {
     res.status(500).json({ error: serverError.internalServerError });
   }

@@ -21,6 +21,13 @@ export const errorMeassage = {
 export const enum Role {
   ADMIN = "ADMIN",
   STUDENT = "STUDENT",
-  STAFF = "TEACHER",
+  STAFF = "STAFF",
   HOD = "HOD",
+}
+
+export const enum RoleId {
+  ADMIN = "1",
+  HOD = "2",
+  STAFF = "3",
+  STUDENT = "4",
 }
