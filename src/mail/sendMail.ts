@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 
 // Define email options type
 export interface EmailOptions {
-  to: string; // Recipient email
+  to: string;
   subject: string;
   text?: string;
   html?: string;
@@ -27,7 +27,7 @@ export const transporter = nodemailer.createTransport({
 export async function sendMail(options: EmailOptions): Promise<string> {
   try {
     const info = await transporter.sendMail({
-      from: '"Maddison Foo Koch 👻" <maddison53@ethereal.email>',
+      from: process.env.G_EMAIL,
       to: options.to,
       subject: options.subject,
       text: options.text,

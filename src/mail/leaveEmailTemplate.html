@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pending Leave Requests</title>
+    <style>
+      body {
+        background-color: #121212;
+        color: #ffffff;
+        font-family: "Arial", sans-serif;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      .container {
+        max-width: 600px;
+        width: 100%;
+        background: linear-gradient(135deg, #1f1f1f, #292929);
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0px 8px 20px rgba(255, 255, 255, 0.15);
+        text-align: center;
+      }
+
+      .header {
+        font-size: 26px;
+        font-weight: bold;
+        background: linear-gradient(45deg, #ff4081, #e91e63);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        padding-bottom: 10px;
+      }
+
+      .content {
+        margin-top: 20px;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+
+      .highlight {
+        font-size: 20px;
+        font-weight: bold;
+        color: #ff4081;
+      }
+
+      .button {
+        display: inline-block;
+        margin-top: 25px;
+        padding: 14px 28px;
+        background: linear-gradient(135deg, #ff4081, #e91e63);
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: bold;
+        border-radius: 8px;
+        box-shadow: 0px 4px 10px rgba(255, 64, 129, 0.4);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0px 6px 15px rgba(255, 64, 129, 0.6);
+      }
+
+      .footer {
+        margin-top: 30px;
+        font-size: 12px;
+        color: #bbbbbb;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">Pending Leave Requests</div>
+      <div class="content">
+        <p>Hello,</p>
+        <p>
+          You have <span class="highlight">{{PENDING_COUNT}}</span> pending
+          leave requests waiting for your approval.
+        </p>
+        <a href="{{LEAVE_MANAGEMENT_URL}}" class="button">Review Requests</a>
+      </div>
+      <div class="footer">
+        This is an automated email from the Leave Management System. Please do
+        not reply.
+      </div>
+    </div>
+  </body>
+</html>

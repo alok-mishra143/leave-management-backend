@@ -14,15 +14,6 @@ export const userLeaveValidationSchema = z.object({
   }),
   reason: z.string().min(5, "Reason must be at least 5 characters long"),
 });
-//   .superRefine((data, ctx) => {
-//     if (data.endDate < data.startDate) {
-//       ctx.addIssue({
-//         path: ["endDate"],
-//         message: "End date must be after or equal to start date",
-//         code: "custom",
-//       });
-//     }
-//   });
 
 export const applyLeaveValidation = userLeaveValidationSchema.pick({
   requestedTo: true,
