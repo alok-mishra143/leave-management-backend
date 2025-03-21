@@ -10,6 +10,7 @@ app.use(express.json());
 app.use(
   cors({
     origin: process.env.NEXTJS_URL!,
+
     credentials: true,
   })
 );
