@@ -24,7 +24,7 @@ Built using **Node.js**, **Express.js**, and **Prisma ORM**, it ensures smooth d
 
 ### 1️⃣ Clone the Repository
 ```sh
-  git clone https://github.com/yourusername/leave-management-backend.git
+  git clone https://github.com/alok-mishra143/leave-management-backend.git
   cd leave-management-backend
 ```
 
