@@ -39,17 +39,17 @@ studentRoute.delete(
 
 studentRoute.get(
   "/staff/:department",
-  auth([Role.STUDENT, Role.ADMIN]),
+  auth([Role.STUDENT, Role.ADMIN, Role.STAFF]),
   getTeacherForLeave
 );
 studentRoute.get(
   "/personal-leaves/:id",
-  auth([Role.STUDENT, Role.ADMIN]),
+  auth([Role.STUDENT, Role.ADMIN, Role.STAFF, Role.HOD]),
   getPersonalLeave
 );
 studentRoute.get(
   "/leaves-balance/:id",
-  auth([Role.STUDENT, Role.ADMIN]),
+  auth([Role.STUDENT, Role.ADMIN, Role.STAFF]),
   getLeaveBalance
 );
 

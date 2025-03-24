@@ -6,9 +6,10 @@ import {
   updateUserValidation,
 } from "../validations/authValidation";
 import type { Request, Response } from "express";
-import { errorMeassage } from "../constants/Meassage";
+import { errorMeassage, Role, RoleId } from "../constants/Meassage";
 
-const { serverError, userError } = errorMeassage;
+const { serverError, userError, statusCodes, leaveError, paginationError } =
+  errorMeassage;
 
 export const signUpUser = async (
   req: Request,
@@ -17,9 +18,10 @@ export const signUpUser = async (
   try {
     const validation = signUpValidation.safeParse(req.body);
     if (!validation.success) {
-      res
-        .status(400)
-        .json({ error: "Invalid input", details: validation.error.errors });
+      res.status(statusCodes.badRequest).json({
+        error: userError.invalidInput,
+        details: validation.error.errors,
+      });
       return;
     }
 
@@ -39,7 +41,7 @@ export const signUpUser = async (
     });
 
     if (existingUser) {
-      res.status(400).json({ error: userError.userExists });
+      res.status(statusCodes.badRequest).json({ error: userError.userExists });
       return;
     }
 
@@ -70,14 +72,16 @@ export const signUpUser = async (
       },
     });
 
-    res.status(201).json({
+    res.status(statusCodes.created).json({
       message: userError.userCreated,
       user: newUser,
       leaveTable: createLeaveTable,
     });
   } catch (error) {
     console.error("Signup error:", error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
 
@@ -91,7 +95,7 @@ export const updateUser = async (
     const { id } = req.params;
 
     if (!validation.success) {
-      res.status(400).json({
+      res.status(statusCodes.badRequest).json({
         error: userError.invalidInput,
         details: validation.error.errors,
       });
@@ -117,10 +121,13 @@ export const updateUser = async (
         },
       },
     });
-    res.status(200).json({ message: "User updated", user: updateUser });
+    res
+      .status(statusCodes.ok)
+      .json({ message: userError.userUpdated, user: updateUser });
   } catch (error) {
-    console.error("Update user error:", error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
 
@@ -135,7 +142,9 @@ export const deleteUser = async (
       where: { id: id },
     });
 
-    res.status(200).json({ message: "User deleted", user: deleteUser });
+    res
+      .status(statusCodes.ok)
+      .json({ message: userError.deletedSucessfully, user: deleteUser });
   } catch (error) {
     console.error("Delete user error:", error);
     res.status(500).json({ error: serverError.internalServerError });
@@ -154,7 +163,9 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
 
     // Validate pagination values
     if (limit < 1 || page < 1) {
-      res.status(400).json({ error: "Invalid pagination parameters" });
+      res
+        .status(statusCodes.badRequest)
+        .json({ error: paginationError.invalidPagination });
       return;
     }
 
@@ -208,7 +219,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
       role: user.role.name,
     }));
 
-    res.status(200).json({
+    res.status(statusCodes.ok).json({
       message: "Users retrieved successfully",
       data: formUsers,
       pagination: {
@@ -220,7 +231,9 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     console.error("Error fetching users:", error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
 
@@ -232,7 +245,9 @@ export const viewLeaves = async (
     // Extract and validate token
     const token = req.cookies?.token || req.headers?.token;
     if (!token) {
-      res.status(401).json({ error: serverError.tokenNotFound });
+      res
+        .status(statusCodes.notFound)
+        .json({ error: serverError.tokenNotFound });
       return;
     }
 
@@ -251,7 +266,7 @@ export const viewLeaves = async (
     const col = req.query.col as string | "name";
     const sort = req.query.sort as string | "asc";
 
-    const leaveFilter = role === "ADMIN" ? {} : { requestTo: id };
+    const leaveFilter = role === Role.ADMIN ? {} : { requestTo: id };
 
     const statusFilter = status ? { status } : {};
     const searchFilter = search
@@ -346,7 +361,7 @@ export const viewLeaves = async (
     ]);
 
     // Return response with pagination info
-    res.status(200).json({
+    res.status(statusCodes.ok).json({
       success: true,
       data: leaves,
       pagination: {
@@ -358,7 +373,9 @@ export const viewLeaves = async (
     });
   } catch (error) {
     console.error("Error fetching leaves:", error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
 
@@ -371,7 +388,9 @@ export const updateLeaveStatus = async (
     const token = req.body.token || req.headers.token;
 
     if (!token) {
-      res.status(401).json({ error: serverError.tokenNotFound });
+      res
+        .status(statusCodes.notFound)
+        .json({ error: serverError.tokenNotFound });
       return;
     }
 
@@ -382,21 +401,20 @@ export const updateLeaveStatus = async (
         id: string;
       };
     } catch (error) {
-      res.status(403).json({ error: serverError.unauthorized });
+      res
+        .status(statusCodes.unauthorized)
+        .json({ error: serverError.unauthorized });
       return;
     }
 
     // Extract and validate request parameters
     const { id } = req.params;
-    const { status } = req.body;
+    const { status } = req.body as { status: LeaveStatus };
 
     if (!id) {
-      res.status(400).json({ error: "Leave ID is required" });
-      return;
-    }
-
-    if (!["PENDING", "APPROVED", "REJECTED"].includes(status)) {
-      res.status(400).json({ error: "Invalid leave status" });
+      res
+        .status(statusCodes.badRequest)
+        .json({ error: leaveError.leaveIdRequire });
       return;
     }
 
@@ -406,12 +424,14 @@ export const updateLeaveStatus = async (
     });
 
     if (!existingLeave) {
-      res.status(404).json({ error: "Leave request not found" });
+      res.status(404).json({ error: leaveError.leaveNotFound });
       return;
     }
 
     if (existingLeave.status === status) {
-      res.status(400).json({ error: "Leave status is already updated" });
+      res
+        .status(statusCodes.badRequest)
+        .json({ error: leaveError.invalidLeaveType });
       return;
     }
 
@@ -453,15 +473,17 @@ export const updateLeaveStatus = async (
       }),
     ]);
 
-    res.status(200).json({
+    res.status(statusCodes.ok).json({
       success: true,
-      message: "Leave status updated successfully",
+      message: leaveError.leaveUpdated,
       data: updatedLeave,
       newLeaveTable: newLeaveTable,
     });
   } catch (error) {
     console.error("Error updating leave status:", error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
     return;
   }
 };
@@ -485,7 +507,7 @@ export const dashboardInfo = async (
       await db.leaveRequest.count(),
     ]);
 
-    res.status(200).json({
+    res.status(statusCodes.ok).json({
       success: true,
       data: {
         pendingCount,
@@ -497,7 +519,9 @@ export const dashboardInfo = async (
     });
   } catch (error) {
     console.error("Error fetching dashboard info:", error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
 
@@ -507,7 +531,7 @@ export const getStudents = async (
 ): Promise<void> => {
   try {
     const students = await db.user.findMany({
-      where: { roleId: "3" },
+      where: { roleId: RoleId.STUDENT },
       select: {
         id: true,
         name: true,
@@ -518,11 +542,11 @@ export const getStudents = async (
       },
     });
 
-    res.status(200).json({ success: true, data: students });
+    res.status(statusCodes.ok).json({ success: true, data: students });
   } catch (error) {
     console.error("Error fetching students:", error);
     res
-      .status(500)
+      .status(statusCodes.internalServerError)
       .json({ success: false, error: serverError.internalServerError });
   }
 };

@@ -1,18 +1,18 @@
 import type { Request, Response } from "express";
 import {
   loginValidation,
-  signUpValidation,
 } from "../validations/authValidation";
 import { db } from "../db/prismaClient";
 import jwt from "jsonwebtoken";
 import { errorMeassage } from "../constants/Meassage";
-const { serverError, userError } = errorMeassage;
+import { tokenVerify } from "../lib/util";
+const { serverError, userError,statusCodes } = errorMeassage;
 
 export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const validation = loginValidation.safeParse(req.body);
     if (!validation.success) {
-      res.status(400).json({
+      res.status(statusCodes.badRequest).json({
         error: userError.invalidInput,
         details: validation.error.errors,
       });
@@ -33,13 +33,12 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!user) {
-      res.status(404).json({ error: userError.userNotFound });
+      res.status(statusCodes.notFound).json({ error: userError.userNotFound });
       return;
     }
 
     const passwordMatch = await Bun.password.verify(password, user.password);
 
-    console.log("passwordMatch", passwordMatch);
     if (!passwordMatch) {
       res.status(401).json({ error: userError.invalidPassword });
       return;
@@ -51,7 +50,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!role) {
-      res.status(500).json({ error: userError.userRoleNotFound });
+      res.status(statusCodes.internalServerError).json({ error: userError.userRoleNotFound });
       return;
     }
 
@@ -75,20 +74,18 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       maxAge: 86_400_000,
     });
 
-    res.status(200).json({ message: userError.loginSucessFull, token });
+    res.status(statusCodes.ok).json({ message: userError.loginSucessFull, token });
   } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res.status(statusCodes.internalServerError).json({ error: serverError.internalServerError });
   }
 };
 
 export const logOut = async (req: Request, res: Response): Promise<void> => {
   try {
     res.clearCookie("token");
-    res.status(200).json({ message: userError.logoutSucessFull });
+    res.status(statusCodes.ok).json({ message: userError.logoutSucessFull });
   } catch (error) {
-    console.error("Logout error:", error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res.status(statusCodes.internalServerError).json({ error: serverError.internalServerError });
   }
 };
 
@@ -99,24 +96,24 @@ export const verifyToken = async (
   try {
     const token = req.cookies?.token || req.headers?.token;
     if (!token) {
-      res.status(401).json({ message: serverError.unauthorized });
+      res.status(statusCodes.unauthorized).json({ message: serverError.unauthorized });
       return;
     }
 
     if (!process.env.JWT_SECRET) {
-      res.status(500).json({ error: serverError.internalServerError });
+      res.status(statusCodes.internalServerError).json({ error: serverError.internalServerError });
     }
     jwt.verify(token, process.env.JWT_SECRET!, (err: any, decoded: any) => {
       if (err) {
-        res.status(401).json({ message: serverError.unauthorized });
+        res.status(statusCodes.unauthorized).json({ message: serverError.unauthorized });
         return;
       }
-      res.status(200).json({ authenticated: true, user: decoded });
+      res.status(statusCodes.ok).json({ authenticated: true, user: decoded });
     });
 
-    res.status(200).json({ authenticated: true });
+    res.status(statusCodes.ok).json({ authenticated: true });
   } catch (error) {
-    res.status(500).json({ error: serverError.internalServerError });
+    res.status(statusCodes.internalServerError).json({ error: serverError.internalServerError });
   }
 };
 
@@ -127,21 +124,70 @@ export const GetUserRole = async (
   try {
     const { token } = req.body;
     if (!token) {
-      res.status(401).json({ message: serverError.unauthorized });
+      res.status(statusCodes.unauthorized).json({ message: serverError.unauthorized });
       return;
     }
 
     if (!process.env.JWT_SECRET) {
-      res.status(500).json({ error: serverError.internalServerError });
+      res.status(statusCodes.internalServerError).json({ error: serverError.internalServerError });
     }
     jwt.verify(token, process.env.JWT_SECRET!, (err: any, decoded: any) => {
       if (err) {
-        res.status(401).json({ message: serverError.unauthorized });
+        res.status(statusCodes.unauthorized).json({ message: serverError.unauthorized });
         return;
       }
-      res.status(200).json({ authenticated: true, user: decoded });
+      res.status(statusCodes.ok).json({ authenticated: true, user: decoded });
     });
   } catch (error) {
-    res.status(500).json({ error: serverError.internalServerError });
+    res.status(statusCodes.internalServerError).json({ error: serverError.internalServerError });
+  }
+};
+
+export const getUserById = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const token = req.cookies?.token || req.headers?.token;
+
+    const verify = await tokenVerify(token);
+
+    if (!verify?.id) {
+      res.status(statusCodes.unauthorized).json({ message: serverError.unauthorized });
+      return;
+    }
+
+    const { id } = verify;
+
+    const user = await db.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        address: true,
+        email: true,
+        roleId: true,
+        image: true,
+        name: true,
+        phone: true,
+        gender: true,
+        department: true,
+
+        role: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      res.status(statusCodes.notFound).json({ error: userError.userNotFound });
+      return;
+    }
+
+    res.status(statusCodes.ok).json({ user: user });
+  } catch (error) {
+    res.status(statusCodes.internalServerError).json({ error: serverError.internalServerError });
   }
 };

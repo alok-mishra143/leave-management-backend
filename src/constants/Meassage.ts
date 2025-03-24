@@ -15,6 +15,31 @@ export const errorMeassage = {
     loginSucessFull: "Login successful",
     logoutSucessFull: "Logout successful",
     userCreated: "User created",
+    userUpdated: "User updated sucessfully",
+    studentCreated: "Student created",
+    deletedSucessfully: "Deleted sucessfully",
+  },
+  leaveError: {
+    leaveNotFound: "Leave not found",
+    leaveCreated: "Leave created",
+    leaveUpdated: "Leave updated",
+    leaveDeleted: "Leave deleted",
+    leaveIdRequire: "Leave ID is required",
+    invalidLeaveType: "Invalid leave type",
+  },
+  paginationError: {
+    invalidPagination: "Invalid pagination parameters",
+  },
+  statusCodes: {
+    ok: 200,
+    created: 201,
+    noContent: 204,
+    badRequest: 400,
+    unauthorized: 401,
+    forbidden: 403,
+    notFound: 404,
+    conflict: 409,
+    internalServerError: 500,
   },
 };
 

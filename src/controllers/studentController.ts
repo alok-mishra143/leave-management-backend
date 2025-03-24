@@ -10,10 +10,9 @@ import {
 import {
   applyLeaveValidation,
   editLeaveValidation,
-  userLeaveValidationSchema,
 } from "../validations/leaveValidation";
 
-const { serverError, userError } = errorMeassage;
+const { serverError, userError, leaveError, statusCodes } = errorMeassage;
 
 export const registerStudent = async (
   req: Request,
@@ -22,7 +21,7 @@ export const registerStudent = async (
   try {
     const validation = studentSignupValidation.safeParse(req.body);
     if (!validation.success) {
-      res.status(400).json({
+      res.status(statusCodes.badRequest).json({
         error: userError.invalidInput,
         details: validation.error.errors,
       });
@@ -37,7 +36,7 @@ export const registerStudent = async (
     });
 
     if (existingUser) {
-      res.status(400).json({ error: userError.userExists });
+      res.status(statusCodes.badRequest).json({ error: userError.userExists });
       return;
     }
 
@@ -68,14 +67,16 @@ export const registerStudent = async (
       },
     });
 
-    res.status(201).json({
-      message: "Student created successfully",
+    res.status(statusCodes.created).json({
+      message: userError.studentCreated,
       student: student,
       userLeave: createdUserLeave,
     });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
 
@@ -87,7 +88,7 @@ export const updateProfile = async (
     const validation = studentUpdateValidation.safeParse(req.body);
 
     if (!validation.success) {
-      res.status(400).json({
+      res.status(statusCodes.badRequest).json({
         error: userError.invalidInput,
         details: validation.error.errors,
       });
@@ -107,10 +108,14 @@ export const updateProfile = async (
       },
     });
 
-    res.status(200).json({ message: "Student updated successfully", student });
+    res
+      .status(statusCodes.ok)
+      .json({ message: userError.userUpdated, student });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
 
@@ -122,14 +127,14 @@ export const applyLeave = async (
     const { id } = req.params;
 
     if (!id) {
-      res.status(400).json({ error: userError.invalidInput });
+      res.status(statusCodes.forbidden).json({ error: userError.invalidInput });
       return;
     }
 
     const validation = applyLeaveValidation.safeParse(req.body);
 
     if (!validation.success) {
-      res.status(400).json({
+      res.status(statusCodes.noContent).json({
         error: userError.invalidInput,
         details: validation.error.errors,
       });
@@ -144,7 +149,9 @@ export const applyLeave = async (
     });
 
     if (!requestedPerson) {
-      res.status(400).json({ error: userError.invalidInput });
+      res
+        .status(statusCodes.badRequest)
+        .json({ error: userError.invalidInput });
       return;
     }
 
@@ -161,13 +168,20 @@ export const applyLeave = async (
       },
     });
 
-    res.status(201).json({ message: "Leave request created", leave });
+    res
+      .status(statusCodes.created)
+      .json({ message: leaveError.leaveCreated, leave });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
 
+// ! no use delete this
+
+/*
 export const getLeaveByDepartment = async (
   req: Request,
   res: Response
@@ -194,10 +208,13 @@ export const getLeaveByDepartment = async (
     res.status(200).json({ leave });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
 
+*/
 export const getPersonalLeave = async (
   req: Request,
   res: Response
@@ -205,7 +222,9 @@ export const getPersonalLeave = async (
   try {
     const { id } = req.params;
     if (!id) {
-      res.status(400).json({ error: userError.invalidInput });
+      res
+        .status(statusCodes.badRequest)
+        .json({ error: userError.invalidInput });
       return;
     }
 
@@ -292,7 +311,7 @@ export const getPersonalLeave = async (
       db.leaveRequest.count({ where: { userId: id } }),
     ]);
 
-    res.status(200).json({
+    res.status(statusCodes.ok).json({
       success: true,
       data: leave,
       pagination: {
@@ -304,7 +323,9 @@ export const getPersonalLeave = async (
     });
   } catch (error) {
     console.error("Error fetching leave requests:", error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
 
@@ -316,7 +337,9 @@ export const getLeaveBalance = async (
     const { id } = req.params;
 
     if (!id) {
-      res.status(400).json({ error: userError.invalidInput });
+      res
+        .status(statusCodes.badRequest)
+        .json({ error: userError.invalidInput });
       return;
     }
 
@@ -329,12 +352,15 @@ export const getLeaveBalance = async (
       },
     });
 
-    res.status(200).json({ userLeave });
+    res.status(statusCodes.ok).json({ userLeave });
   } catch (error) {
-    console.error("Error fetching leave balance:", error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
+
+// select teachers for leave
 
 export const getTeacherForLeave = async (
   req: Request,
@@ -362,7 +388,9 @@ export const getTeacherForLeave = async (
       !department ||
       !Object.values(Department).includes(department as Department)
     ) {
-      res.status(400).json({ success: false, error: userError.invalidInput });
+      res
+        .status(statusCodes.forbidden)
+        .json({ success: false, error: userError.invalidInput });
       return;
     }
 
@@ -374,11 +402,11 @@ export const getTeacherForLeave = async (
       select: { id: true, name: true },
     });
 
-    res.status(200).json({ data: teachers });
+    res.status(statusCodes.ok).json({ data: teachers });
   } catch (error) {
     console.error("Error fetching teachers for leave:", error);
     res
-      .status(500)
+      .status(statusCodes.internalServerError)
       .json({ success: false, error: serverError.internalServerError });
   }
 };
@@ -412,10 +440,11 @@ export const EditLeave = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    res.status(200).json({ message: "Leave updated successfully", leave });
+    res.status(200).json({ message: leaveError.leaveUpdated, leave });
   } catch (error) {
-    console.error("Error updating leave:", error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
 
@@ -427,18 +456,24 @@ export const deleteLeave = async (
     const { id } = req.params;
 
     if (!id) {
-      res.status(400).json({ error: userError.invalidInput });
+      res
+        .status(statusCodes.badRequest)
+        .json({ error: userError.invalidInput });
       return;
     }
 
     await db.leaveRequest.delete({ where: { id } });
 
-    res.status(200).json({ message: "Leave deleted successfully" });
+    res.status(200).json({ message: leaveError.leaveDeleted });
   } catch (error) {
     console.error("Error deleting leave:", error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
+
+// for calender events maping
 
 export const getAllApprovedLeaves = async (
   req: Request,
@@ -470,7 +505,8 @@ export const getAllApprovedLeaves = async (
 
     res.status(200).json({ data: filterLeaves });
   } catch (error) {
-    console.error("Error fetching all approved leaves:", error);
-    res.status(500).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
