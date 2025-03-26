@@ -3,6 +3,9 @@ import router from "./src/routes";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { job } from "./src/cron/cronJob";
+import session from "express-session";
+
+const passPortSetup = require("./src/controllers/oAuth/oAuth");
 
 const app = express();
 const PORT = process.env.PORT || 9000;
@@ -14,6 +17,13 @@ app.use(
     origin: origin,
 
     credentials: true,
+  })
+);
+app.use(
+  session({
+    secret: "secret",
+    resave: false,
+    saveUninitialized: false,
   })
 );
 app.use(express.urlencoded({ extended: true }));

@@ -49,6 +49,7 @@ async function main() {
         phone: "1234567890",
         address: "Dhaka",
         email: email,
+        provider: "Credentials",
         image: "https://i.pravatar.cc",
         password: haspass,
         gender: "MALE",

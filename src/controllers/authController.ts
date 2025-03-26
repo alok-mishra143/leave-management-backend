@@ -1,12 +1,10 @@
 import type { Request, Response } from "express";
-import {
-  loginValidation,
-} from "../validations/authValidation";
+import { loginValidation } from "../validations/authValidation";
 import { db } from "../db/prismaClient";
 import jwt from "jsonwebtoken";
 import { errorMeassage } from "../constants/Meassage";
-import { tokenVerify } from "../lib/util";
-const { serverError, userError,statusCodes } = errorMeassage;
+import { provider } from "@prisma/client";
+const { serverError, userError, statusCodes } = errorMeassage;
 
 export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -29,6 +27,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
         roleId: true,
         image: true,
         name: true,
+        provider: true,
       },
     });
 
@@ -36,8 +35,11 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       res.status(statusCodes.notFound).json({ error: userError.userNotFound });
       return;
     }
+    let passwordMatch = false;
 
-    const passwordMatch = await Bun.password.verify(password, user.password);
+    if (user.provider === provider.credentials && user.password) {
+      passwordMatch = await Bun.password.verify(password, user.password);
+    }
 
     if (!passwordMatch) {
       res.status(401).json({ error: userError.invalidPassword });
@@ -50,7 +52,9 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!role) {
-      res.status(statusCodes.internalServerError).json({ error: userError.userRoleNotFound });
+      res
+        .status(statusCodes.internalServerError)
+        .json({ error: userError.userRoleNotFound });
       return;
     }
 
@@ -74,18 +78,30 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       maxAge: 86_400_000,
     });
 
-    res.status(statusCodes.ok).json({ message: userError.loginSucessFull, token });
+    res
+      .status(statusCodes.ok)
+      .json({ message: userError.loginSucessFull, token });
   } catch (error) {
-    res.status(statusCodes.internalServerError).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
 
 export const logOut = async (req: Request, res: Response): Promise<void> => {
   try {
-    res.clearCookie("token");
-    res.status(statusCodes.ok).json({ message: userError.logoutSucessFull });
+
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+
+    res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
-    res.status(statusCodes.internalServerError).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
 
@@ -96,16 +112,22 @@ export const verifyToken = async (
   try {
     const token = req.cookies?.token || req.headers?.token;
     if (!token) {
-      res.status(statusCodes.unauthorized).json({ message: serverError.unauthorized });
+      res
+        .status(statusCodes.unauthorized)
+        .json({ message: serverError.unauthorized });
       return;
     }
 
     if (!process.env.JWT_SECRET) {
-      res.status(statusCodes.internalServerError).json({ error: serverError.internalServerError });
+      res
+        .status(statusCodes.internalServerError)
+        .json({ error: serverError.internalServerError });
     }
     jwt.verify(token, process.env.JWT_SECRET!, (err: any, decoded: any) => {
       if (err) {
-        res.status(statusCodes.unauthorized).json({ message: serverError.unauthorized });
+        res
+          .status(statusCodes.unauthorized)
+          .json({ message: serverError.unauthorized });
         return;
       }
       res.status(statusCodes.ok).json({ authenticated: true, user: decoded });
@@ -113,7 +135,9 @@ export const verifyToken = async (
 
     res.status(statusCodes.ok).json({ authenticated: true });
   } catch (error) {
-    res.status(statusCodes.internalServerError).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
 
@@ -124,22 +148,30 @@ export const GetUserRole = async (
   try {
     const { token } = req.body;
     if (!token) {
-      res.status(statusCodes.unauthorized).json({ message: serverError.unauthorized });
+      res
+        .status(statusCodes.unauthorized)
+        .json({ message: serverError.unauthorized });
       return;
     }
 
     if (!process.env.JWT_SECRET) {
-      res.status(statusCodes.internalServerError).json({ error: serverError.internalServerError });
+      res
+        .status(statusCodes.internalServerError)
+        .json({ error: serverError.internalServerError });
     }
     jwt.verify(token, process.env.JWT_SECRET!, (err: any, decoded: any) => {
       if (err) {
-        res.status(statusCodes.unauthorized).json({ message: serverError.unauthorized });
+        res
+          .status(statusCodes.unauthorized)
+          .json({ message: serverError.unauthorized });
         return;
       }
       res.status(statusCodes.ok).json({ authenticated: true, user: decoded });
     });
   } catch (error) {
-    res.status(statusCodes.internalServerError).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };
 
@@ -148,16 +180,7 @@ export const getUserById = async (
   res: Response
 ): Promise<void> => {
   try {
-    const token = req.cookies?.token || req.headers?.token;
-
-    const verify = await tokenVerify(token);
-
-    if (!verify?.id) {
-      res.status(statusCodes.unauthorized).json({ message: serverError.unauthorized });
-      return;
-    }
-
-    const { id } = verify;
+    const { id } = req.user!;
 
     const user = await db.user.findUnique({
       where: { id },
@@ -188,6 +211,8 @@ export const getUserById = async (
 
     res.status(statusCodes.ok).json({ user: user });
   } catch (error) {
-    res.status(statusCodes.internalServerError).json({ error: serverError.internalServerError });
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
   }
 };

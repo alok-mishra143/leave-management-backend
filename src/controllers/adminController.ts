@@ -1,15 +1,13 @@
-import jwt from "jsonwebtoken";
 import { db } from "../db/prismaClient";
-import { LeaveStatus, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import {
   signUpValidation,
   updateUserValidation,
 } from "../validations/authValidation";
 import type { Request, Response } from "express";
-import { errorMeassage, Role, RoleId } from "../constants/Meassage";
+import { errorMeassage, RoleId } from "../constants/Meassage";
 
-const { serverError, userError, statusCodes, leaveError, paginationError } =
-  errorMeassage;
+const { serverError, userError, statusCodes, paginationError } = errorMeassage;
 
 export const signUpUser = async (
   req: Request,
@@ -237,257 +235,6 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const viewLeaves = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    // Extract and validate token
-    const token = req.cookies?.token || req.headers?.token;
-    if (!token) {
-      res
-        .status(statusCodes.notFound)
-        .json({ error: serverError.tokenNotFound });
-      return;
-    }
-
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
-      id: string;
-      role: string;
-      userId: string;
-    };
-
-    const { role, id } = decodedToken;
-
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const status = req.query.status as LeaveStatus | undefined;
-    const search = req.query.search as string | "";
-    const col = req.query.col as string | "name";
-    const sort = req.query.sort as string | "asc";
-
-    const leaveFilter = role === Role.ADMIN ? {} : { requestTo: id };
-
-    const statusFilter = status ? { status } : {};
-    const searchFilter = search
-      ? {
-          OR: [
-            {
-              user: {
-                name: { contains: search, mode: Prisma.QueryMode.insensitive },
-                email: { contains: search, mode: Prisma.QueryMode.insensitive },
-              },
-            },
-            {
-              reason: { contains: search, mode: Prisma.QueryMode.insensitive },
-            },
-          ],
-        }
-      : {};
-
-    let orderBy;
-    switch (col) {
-      case "name":
-        orderBy = { user: { name: sort as Prisma.SortOrder } };
-        break;
-      case "email":
-        orderBy = { user: { email: sort as Prisma.SortOrder } };
-        break;
-      case "requestedTo":
-        orderBy = { requestedTo: { name: sort as Prisma.SortOrder } };
-        break;
-      case "startDate":
-        orderBy = { startDate: sort as Prisma.SortOrder };
-        break;
-      case "endDate":
-        orderBy = { endDate: sort as Prisma.SortOrder };
-        break;
-      case "status":
-        orderBy = { status: sort as Prisma.SortOrder };
-        break;
-      case "reason":
-        orderBy = { reason: sort as Prisma.SortOrder };
-        break;
-      case "approvedBy":
-        orderBy = { approvedBy: { name: sort as Prisma.SortOrder } };
-        break;
-      case "leaveType":
-        orderBy = { leaveType: sort as Prisma.SortOrder };
-        break;
-      default:
-        orderBy = { createdAt: "desc" as Prisma.SortOrder }; // Default sorting by latest request
-    }
-
-    const [leaves, total] = await Promise.all([
-      db.leaveRequest.findMany({
-        where: {
-          ...statusFilter,
-          ...leaveFilter,
-
-          ...searchFilter,
-        },
-        take: limit,
-        skip: (page - 1) * limit,
-        orderBy,
-        select: {
-          id: true,
-          user: {
-            select: {
-              name: true,
-              email: true,
-            },
-          },
-          requestedTo: {
-            select: {
-              name: true,
-              email: true,
-            },
-          },
-          startDate: true,
-          endDate: true,
-          status: true,
-          reason: true,
-          approvedBy: {
-            select: {
-              email: true,
-              name: true,
-              id: true,
-            },
-          },
-          leaveType: true,
-        },
-      }),
-      db.leaveRequest.count({ where: status ? { status } : {} }),
-    ]);
-
-    // Return response with pagination info
-    res.status(statusCodes.ok).json({
-      success: true,
-      data: leaves,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    console.error("Error fetching leaves:", error);
-    res
-      .status(statusCodes.internalServerError)
-      .json({ error: serverError.internalServerError });
-  }
-};
-
-export const updateLeaveStatus = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    // Validate authentication token
-    const token = req.body.token || req.headers.token;
-
-    if (!token) {
-      res
-        .status(statusCodes.notFound)
-        .json({ error: serverError.tokenNotFound });
-      return;
-    }
-
-    let decodedToken;
-    try {
-      decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as {
-        role: string;
-        id: string;
-      };
-    } catch (error) {
-      res
-        .status(statusCodes.unauthorized)
-        .json({ error: serverError.unauthorized });
-      return;
-    }
-
-    // Extract and validate request parameters
-    const { id } = req.params;
-    const { status } = req.body as { status: LeaveStatus };
-
-    if (!id) {
-      res
-        .status(statusCodes.badRequest)
-        .json({ error: leaveError.leaveIdRequire });
-      return;
-    }
-
-    // Retrieve existing leave request
-    const existingLeave = await db.leaveRequest.findUnique({
-      where: { id: id },
-    });
-
-    if (!existingLeave) {
-      res.status(404).json({ error: leaveError.leaveNotFound });
-      return;
-    }
-
-    if (existingLeave.status === status) {
-      res
-        .status(statusCodes.badRequest)
-        .json({ error: leaveError.invalidLeaveType });
-      return;
-    }
-
-    // Determine the leave balance adjustment based on status change
-    let leaveAdjustment = 0;
-    const leaveValue = existingLeave.leaveType === "HALF_DAY" ? 0.5 : 1;
-
-    if (existingLeave.status === "PENDING" && status === "APPROVED") {
-      leaveAdjustment = -leaveValue;
-    } else if (existingLeave.status === "PENDING" && status === "REJECTED") {
-      leaveAdjustment = 0;
-    } else if (existingLeave.status === "APPROVED" && status === "REJECTED") {
-      leaveAdjustment = leaveValue;
-    } else if (existingLeave.status === "REJECTED" && status === "APPROVED") {
-      leaveAdjustment = -leaveValue;
-    }
-
-    const totalDays =
-      existingLeave.endDate.getDate() - existingLeave.startDate.getDate();
-
-    leaveAdjustment = leaveAdjustment * (totalDays + 1);
-
-    // Update leave status and associated user leave balance within a transaction
-    const [updatedLeave, newLeaveTable] = await db.$transaction([
-      db.leaveRequest.update({
-        where: { id: id },
-        data: {
-          status,
-          approveBy: decodedToken.id,
-        },
-      }),
-      db.userLeaveTable.update({
-        where: { userId: existingLeave.userId },
-        data: {
-          availableLeave: {
-            increment: leaveAdjustment,
-          },
-        },
-      }),
-    ]);
-
-    res.status(statusCodes.ok).json({
-      success: true,
-      message: leaveError.leaveUpdated,
-      data: updatedLeave,
-      newLeaveTable: newLeaveTable,
-    });
-  } catch (error) {
-    console.error("Error updating leave status:", error);
-    res
-      .status(statusCodes.internalServerError)
-      .json({ error: serverError.internalServerError });
-    return;
-  }
-};
-
 export const dashboardInfo = async (
   req: Request,
   res: Response
@@ -517,6 +264,8 @@ export const dashboardInfo = async (
         totalLeaves,
       },
     });
+
+    console.log("/dashboard route is working");
   } catch (error) {
     console.error("Error fetching dashboard info:", error);
     res

@@ -11,6 +11,10 @@ enum Gender {
   MALE
   FEMALE
 }
+enum provider {
+  google
+  credentials
+}
 
 enum LeaveStatus {
   PENDING
@@ -42,7 +46,8 @@ model User {
   id              String         @id @default(cuid())
   email           String         @unique
   name            String
-  password        String
+  password        String?
+  provider        provider     @default(credentials)
   gender          Gender
   image           String
   phone           String

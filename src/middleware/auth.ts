@@ -1,6 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
+declare module "express" {
+  interface Request {
+    user?: any;
+  }
+}
+
 export const auth = (allowedRoles: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
@@ -8,31 +14,31 @@ export const auth = (allowedRoles: string[]) => {
 
       if (!token) {
         res.status(401).json({ error: "Access denied. No token provided." });
-        return; // ✅ Ensure function exits after response
+        return;
       }
 
       const secret = process.env.JWT_SECRET;
       if (!secret) {
         res.status(500).json({ error: "Internal Server Error" });
-        return; // ✅ Ensure function exits after response
+        return;
       }
 
       jwt.verify(token, secret, (err: any, decoded: any) => {
         if (err) {
           res.status(401).json({ error: "Invalid or expired token." });
           console.error("Authentication error:", err);
-          return; // ✅ Ensure function exits after response
+          return;
         }
 
         if (!allowedRoles.includes(decoded.role)) {
           res
             .status(403)
             .json({ error: "Access forbidden. Insufficient permissions." });
-          return; // ✅ Ensure function exits after response
+          return;
         }
+        req.user = decoded;
 
-        res.locals.user = decoded;
-        next(); // ✅ Ensure next() is called on success
+        next();
       });
     } catch (error) {
       console.error("Authentication error:", error);
