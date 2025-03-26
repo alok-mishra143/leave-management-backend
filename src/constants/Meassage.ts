@@ -18,6 +18,13 @@ export const errorMeassage = {
     userUpdated: "User updated sucessfully",
     studentCreated: "Student created",
     deletedSucessfully: "Deleted sucessfully",
+    invalidOtp: "Invalid OTP",
+    otpSend: "OTP send to your email",
+    passwordChanged: "Password changed",
+    passwordNotMatch: "Password not match",
+    passwordUpdated: "Password updated",
+    passwordNotChanged: "Password not changed",
+    otpExpired: "OTP expired",
   },
   leaveError: {
     leaveNotFound: "Leave not found",

@@ -1,9 +1,12 @@
 import express from "express";
 import {
+  generateOtp,
   getUserById,
   GetUserRole,
   loginUser,
   logOut,
+  matchOtp,
+  UpdatePassword,
   verifyToken,
 } from "../controllers/authController";
 import { auth } from "../middleware/auth";
@@ -42,6 +45,10 @@ authRoute.get(
     }
   }
 );
+
+authRoute.post("/forgetPassword", generateOtp);
+authRoute.post("/match-otp", matchOtp);
+authRoute.post("/reset-password", UpdatePassword);
 
 authRoute.post("/login", loginUser);
 authRoute.post("/logout", logOut);

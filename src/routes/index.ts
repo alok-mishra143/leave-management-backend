@@ -2,6 +2,7 @@ import adminRoute from "./adminRoute";
 import studentRoute from "./studentRoute";
 import authRoute from "./authRoute";
 import leaveRouter from "./leaveRoute";
+import uploadRouter from "./uploadRoute";
 import express from "express";
 const router = express.Router();
 
@@ -10,6 +11,7 @@ const allRoutes = [
   { path: "/", route: studentRoute, name: "student" },
   { path: "/", route: authRoute, name: "auth" },
   { path: "/", route: leaveRouter, name: "leave" },
+  { path: "/", route: uploadRouter, name: "upload" },
 ];
 
 allRoutes.forEach((route) => {

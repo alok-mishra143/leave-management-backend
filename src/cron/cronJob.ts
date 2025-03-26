@@ -52,6 +52,14 @@ export const job = new CronJob(
         html: emailHtml,
       });
     }
+
+    await db.otp.deleteMany({
+      where: {
+        createdAt: {
+          lte: new Date(Date.now() - 10 * 60 * 1000),
+        },
+      },
+    });
   },
   null, // onComplete
   true, // start immediately

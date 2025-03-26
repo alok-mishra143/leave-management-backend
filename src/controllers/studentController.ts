@@ -80,6 +80,7 @@ export const updateProfile = async (
 ): Promise<void> => {
   try {
     const validation = studentUpdateValidation.safeParse(req.body);
+    const { id } = req.user;
 
     if (!validation.success) {
       res.status(statusCodes.badRequest).json({
@@ -89,22 +90,21 @@ export const updateProfile = async (
       return;
     }
 
-    const { address, department, email, gender, name, phone } = validation.data;
+    const { name, gender, address, phone } = validation.data;
 
-    const student = await db.user.update({
-      where: { email },
+    const updatedProfile = await db.user.update({
+      where: { id },
       data: {
-        address,
-        department,
-        gender,
         name,
-        phone: phone.toString(),
+        address,
+        gender,
+        phone,
       },
     });
 
-    res
-      .status(statusCodes.ok)
-      .json({ message: userError.userUpdated, student });
+    res.status(statusCodes.ok).json({
+      message: userError.userUpdated,
+    });
   } catch (error) {
     console.log(error);
     res
