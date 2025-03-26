@@ -4,7 +4,6 @@ import jwt from "jsonwebtoken";
 import { db } from "../../db/prismaClient";
 import { RoleId } from "../../constants/Meassage";
 import { Department, Gender, type User } from "@prisma/client";
-import { connect } from "http2";
 
 const clientID = process.env.GOOGLE_CLIENT_ID!;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET!;

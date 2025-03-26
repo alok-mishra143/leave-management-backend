@@ -4,6 +4,7 @@ import { db } from "../db/prismaClient";
 import jwt from "jsonwebtoken";
 import { errorMeassage } from "../constants/Meassage";
 import { provider } from "@prisma/client";
+import { sendMail } from "../mail/sendMail";
 const { serverError, userError, statusCodes } = errorMeassage;
 
 export const loginUser = async (req: Request, res: Response): Promise<void> => {
@@ -90,7 +91,6 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 
 export const logOut = async (req: Request, res: Response): Promise<void> => {
   try {
-
     res.clearCookie("token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -211,6 +211,119 @@ export const getUserById = async (
 
     res.status(statusCodes.ok).json({ user: user });
   } catch (error) {
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
+  }
+};
+
+export const generateOtp = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { email } = req.body;
+
+    const user = await db.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+      },
+    });
+
+    if (!user) {
+      res.status(statusCodes.notFound).json({ error: userError.userNotFound });
+      return;
+    }
+
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+
+    const findExistingOtp = await db.otp.findFirst({
+      where: { email },
+    });
+
+    if (findExistingOtp) {
+      await db.otp.delete({
+        where: { id: findExistingOtp.id },
+      });
+    }
+
+    await db.otp.create({
+      data: {
+        email,
+        otp,
+      },
+    });
+
+    // Optionally send email (uncomment when ready)
+
+    await sendMail({
+      to: email,
+      subject: "OTP for password reset",
+      text: `Your OTP is ${otp}`,
+    });
+
+    res.status(statusCodes.ok).json({ message: "OTP sent successfully" });
+  } catch (error) {
+    console.error("Error generating OTP:", error);
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
+  }
+};
+
+export const matchOtp = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, otp } = req.body;
+
+    const findOtp = await db.otp.findFirst({
+      where: { email, otp },
+    });
+
+    if (!findOtp) {
+      res.status(statusCodes.notFound).json({ error: userError.invalidOtp });
+      return;
+    }
+
+    const currentTime = new Date();
+    const otpTime = findOtp.createdAt;
+    const diff = Math.abs(currentTime.getTime() - otpTime.getTime());
+    const diffMinutes = Math.floor(diff / 60000);
+
+    if (diffMinutes > 10) {
+      res.status(statusCodes.notFound).json({ error: userError.otpExpired });
+      return;
+    }
+
+    res.status(statusCodes.ok).json({ message: "OTP matched successfully" });
+  } catch (error) {
+    console.error("Error matching OTP:", error);
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
+  }
+};
+
+export const UpdatePassword = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { email, password } = req.body;
+
+    const hash = await Bun.password.hash(password);
+
+    await db.user.update({
+      where: { email },
+      data: {
+        password: hash,
+      },
+    });
+
+    res.status(statusCodes.ok).json({ message: userError.passwordUpdated });
+  } catch (error) {
+    console.error("Error updating password:", error);
     res
       .status(statusCodes.internalServerError)
       .json({ error: serverError.internalServerError });

@@ -47,4 +47,9 @@ export const updateUserValidation = userSchema.pick({
   department: true,
 });
 export const studentSignupValidation = signUpValidation.omit({ roleId: true });
-export const studentUpdateValidation = updateUserValidation;
+export const studentUpdateValidation = updateUserValidation.pick({
+  name: true,
+  gender: true,
+  phone: true,
+  address: true,
+});
