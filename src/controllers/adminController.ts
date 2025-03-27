@@ -152,11 +152,13 @@ export const deleteUser = async (
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
     // Extract query parameters with default values
+    const { id } = req.user;
+
     const roleID = req.query.roleID as string | "";
     const limit = parseInt(req.query.limit as string) || 10;
     const page = parseInt(req.query.page as string) || 1;
     const sort = req.query.sort as string | "asc";
-    const col = req.query.col as string | "name";
+    const col = req.query.col as string | "createdAt";
     const search = req.query.search as string | "";
 
     // Validate pagination values
@@ -186,6 +188,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
       where: {
         ...roleFilter,
         ...searchFilter,
+        id: { not: id },
       },
       take: limit,
       skip: (page - 1) * limit,
@@ -209,7 +212,10 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
 
     // Count total users for pagination metadata
     const totalUsers = await db.user.count({
-      where: roleFilter,
+      where: {
+        ...roleFilter,
+        id: { not: id },
+      },
     });
 
     const formUsers = users.map((user) => ({

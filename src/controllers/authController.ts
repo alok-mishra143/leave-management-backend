@@ -329,3 +329,12 @@ export const UpdatePassword = async (
       .json({ error: serverError.internalServerError });
   }
 };
+
+export const itsMe = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user = req.user;
+    res.status(200).json({ user });
+  } catch (error) {
+    console.log(error);
+  }
+};

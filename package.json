@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",
+    "@types/busboy": "^1.5.4",
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
@@ -33,6 +34,8 @@
     "@types/nodemailer": "^6.4.17",
     "@types/passport": "^1.0.17",
     "@types/passport-google-oauth20": "^2.0.16",
+    "busboy": "^1.6.0",
+    "cloudinary": "^2.6.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "cron": "^4.1.0",

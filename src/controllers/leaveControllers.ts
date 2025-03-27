@@ -15,7 +15,6 @@ export const viewLeaves = async (
 ): Promise<void> => {
   try {
     const { id, role } = req.user!;
-    console.log("Decoded Token:", { id, role });
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const status = req.query.status as LeaveStatus | undefined;
