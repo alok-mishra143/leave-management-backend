@@ -27,14 +27,12 @@ const fileFilter = (
   if (file.mimetype === "image/jpeg" || file.mimetype === "image/png") {
     cb(null, true);
   } else {
-    cb(null, false); // No error, just reject the file
+    cb(null, false);
   }
 };
 
-// Initialize multer
-export const upload = multer({ storage, fileFilter });
+export const upload = multer({ fileFilter, storage });
 
-// Controller to handle the uploaded file
 export const uploadProfileImage = async (
   req: Request,
   res: Response

@@ -4,12 +4,15 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import { job } from "./src/cron/cronJob";
 import session from "express-session";
+import path from "path";
 
 const passPortSetup = require("./src/controllers/oAuth/oAuth");
 
 const app = express();
 const PORT = process.env.PORT || 9000;
 const origin = process.env.NEXTJS_URL || "*";
+
+app.use(__dirname, express.static(path.join(__dirname, "./src/Images")));
 
 app.use(express.json());
 app.use(

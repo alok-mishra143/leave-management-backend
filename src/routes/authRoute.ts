@@ -3,6 +3,7 @@ import {
   generateOtp,
   getUserById,
   GetUserRole,
+  itsMe,
   loginUser,
   logOut,
   matchOtp,
@@ -53,11 +54,21 @@ authRoute.post("/reset-password", UpdatePassword);
 authRoute.post("/login", loginUser);
 authRoute.post("/logout", logOut);
 authRoute.post("/verify", verifyToken);
-authRoute.post("/me", GetUserRole);
+authRoute.post(
+  "/me",
+  // auth([Role.ADMIN, Role.HOD, Role.STAFF, Role.STUDENT]),
+  GetUserRole
+);
 authRoute.get(
   "/whoami",
   auth([Role.ADMIN, Role.HOD, Role.STAFF, Role.STUDENT]),
   getUserById
+);
+
+authRoute.get(
+  "/test",
+  auth([Role.ADMIN, Role.HOD, Role.STAFF, Role.STUDENT]),
+  itsMe
 );
 
 export default authRoute;
