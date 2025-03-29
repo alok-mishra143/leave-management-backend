@@ -3,6 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
+    "build": "echo 'No build step required'",
     "start": "bun --watch api/index.ts",
     "dev": "bun --watch api/index.ts",
     "db:generate": "prisma generate",
