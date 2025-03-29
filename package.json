@@ -3,9 +3,8 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "build": "next build",
-    "start": "next start",
-    "dev": "bun --watch index.ts",
+    "start": "bun --watch api/index.ts",
+    "dev": "bun --watch api/index.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",

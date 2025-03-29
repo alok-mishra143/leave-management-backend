@@ -1,12 +1,12 @@
 import express from "express";
-import router from "./src/routes";
+import router from "./routes";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import { job } from "./src/cron/cronJob";
+import { job } from "./cron/cronJob";
 import session from "express-session";
 import path from "path";
 
-const passPortSetup = require("./src/controllers/oAuth/oAuth");
+const passPortSetup = require("./controllers/oAuth/oAuth");
 
 const app = express();
 const PORT = process.env.PORT || 9000;
