@@ -139,7 +139,7 @@ A **cron job** runs every hour to check for pending leave requests and sends a n
 
 
 ## 🌐 Frontend Repository
-🔗 [Leave Management Frontend](https://github.com/yourusername/leave-management-frontend)
+🔗 [Leave Management Frontend](https://github.com/alok-mishra143/leave-management-frontend)
 
 ---
 
