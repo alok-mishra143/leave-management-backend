@@ -36,7 +36,7 @@ const getAllPendingRequests = async () => {
 };
 
 export const job = new CronJob(
-  "0 0 9 * * *", // Runs every day at 9:00 AM
+  "0 0 7 * * *", // Runs every day at 9:00 AM
   async function () {
     const pendingRequests = await getAllPendingRequests();
 

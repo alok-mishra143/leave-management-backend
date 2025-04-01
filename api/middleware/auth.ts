@@ -42,6 +42,7 @@ export const auth = (allowedRoles: string[]) => {
           name: true,
           email: true,
           image: true,
+          department: true,
           role: {
             select: {
               name: true,
@@ -63,6 +64,7 @@ export const auth = (allowedRoles: string[]) => {
         image: user.image,
         role: user.role.name,
         roleId: user.roleId,
+        department: user.department,
       };
 
       const role = await db.role.findUnique({
