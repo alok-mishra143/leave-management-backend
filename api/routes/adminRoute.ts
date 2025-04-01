@@ -17,7 +17,7 @@ adminRoute.patch("/user/:id", auth([Role.ADMIN]), updateUser);
 
 adminRoute.delete("/user/:id", auth([Role.ADMIN]), deleteUser);
 
-adminRoute.post("/users", auth([Role.ADMIN]), getUsers);
+adminRoute.post("/users", auth([Role.ADMIN, Role.HOD]), getUsers);
 
 adminRoute.get("/student", auth([Role.ADMIN, Role.STUDENT]), getStudents);
 adminRoute.get(

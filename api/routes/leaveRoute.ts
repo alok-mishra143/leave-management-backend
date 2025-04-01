@@ -28,13 +28,13 @@ leaveRouter.get(
 
 leaveRouter.get(
   "/leaves-balance/:id",
-  auth([Role.STUDENT, Role.ADMIN, Role.STAFF]),
+  auth([Role.STUDENT, Role.ADMIN, Role.STAFF, Role.HOD]),
   getLeaveBalance
 );
 
 leaveRouter.get(
-  "/staff/:department",
-  auth([Role.STUDENT, Role.ADMIN, Role.STAFF]),
+  "/staff",
+  auth([Role.STUDENT, Role.ADMIN, Role.STAFF, Role.HOD]),
   getTeacherForLeave
 );
 leaveRouter.get(
@@ -51,7 +51,7 @@ leaveRouter.patch(
 
 leaveRouter.patch(
   "/edit-leave/:id",
-  auth([Role.STUDENT, Role.ADMIN, Role.STAFF]),
+  auth([Role.STUDENT, Role.ADMIN, Role.STAFF, Role.HOD]),
   EditLeave
 );
 
@@ -63,7 +63,7 @@ leaveRouter.post(
 
 leaveRouter.delete(
   "/delete-leave/:id",
-  auth([Role.STUDENT, Role.ADMIN, Role.STAFF]),
+  auth([Role.STUDENT, Role.ADMIN, Role.STAFF, Role.HOD]),
   deleteLeave
 );
 

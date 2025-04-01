@@ -21,8 +21,30 @@ export const viewLeaves = async (
     const search = req.query.search as string | "";
     const col = req.query.col as string | "name";
     const sort = req.query.sort as string | "asc";
+    const leave = req.query.leave as string | null;
 
-    const leaveFilter = role === Role.ADMIN ? {} : { requestTo: id };
+    let leaveFilter = {};
+
+    if (role === Role.ADMIN) {
+      if (leave === "all") {
+        leaveFilter = {};
+      } else {
+        leaveFilter = { requestTo: id };
+      }
+    } else if (role === Role.HOD) {
+      if (leave === "all") {
+        leaveFilter = {
+          user: {
+            id: { not: id },
+            department: req.user.department as Department,
+          },
+        };
+      } else {
+        leaveFilter = { requestTo: id };
+      }
+    } else if (role === Role.STAFF) {
+      leaveFilter = { requestTo: id };
+    }
 
     const statusFilter = status ? { status } : {};
     const searchFilter = search
@@ -79,7 +101,6 @@ export const viewLeaves = async (
         where: {
           ...statusFilter,
           ...leaveFilter,
-
           ...searchFilter,
         },
         take: limit,
@@ -180,7 +201,9 @@ export const updateLeaveStatus = async (
     }
 
     const totalDays =
-      existingLeave.endDate.getDate() - existingLeave.startDate.getDate();
+      (new Date(existingLeave.endDate).getTime() -
+        new Date(existingLeave.startDate).getTime()) /
+      (1000 * 60 * 60 * 24);
 
     leaveAdjustment = leaveAdjustment * (totalDays + 1);
 
@@ -427,18 +450,27 @@ export const getTeacherForLeave = async (
   res: Response
 ): Promise<void> => {
   try {
-    const department = req.params.department?.trim().toString();
-    const { role } = req.user!;
+    const { role, department } = req.user!;
 
-    const whomToRequest = role === Role.STUDENT ? RoleId.STAFF : RoleId.HOD;
+    let whomToRequest: RoleId;
+    let departmentFilter = {};
 
-    const departmentFilter = department
-      ? { department: department as Department }
-      : {};
+    if (role === Role.STUDENT) {
+      whomToRequest = RoleId.STAFF;
+      departmentFilter = { department: department as Department };
+    } else if (role === Role.STAFF) {
+      whomToRequest = RoleId.HOD;
+      departmentFilter = { department: department as Department };
+    } else if (role === Role.HOD) {
+      whomToRequest = RoleId.ADMIN;
+    } else {
+      whomToRequest = RoleId.ADMIN;
+    }
 
     if (
-      !department ||
-      !Object.values(Department).includes(department as Department)
+      role !== Role.HOD && // Only validate department for non-HOD users
+      (!department ||
+        !Object.values(Department).includes(department as Department))
     ) {
       res
         .status(statusCodes.forbidden)

@@ -1,5 +1,5 @@
 import { db } from "../db/prismaClient";
-import { errorMeassage, Role } from "../constants/Meassage";
+import { errorMeassage, Role, RoleId } from "../constants/Meassage";
 import type { Request, Response } from "express";
 import {
   studentSignupValidation,
@@ -46,11 +46,7 @@ export const registerStudent = async (
         name,
         password: hash,
         phone: phone.toString(),
-        role: {
-          connect: {
-            id: Role.STUDENT,
-          },
-        },
+        roleId: RoleId.STUDENT,
       },
     });
 

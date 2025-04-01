@@ -1,5 +1,5 @@
 import { db } from "../db/prismaClient";
-import { Prisma } from "@prisma/client";
+import { Department, Prisma } from "@prisma/client";
 import {
   signUpValidation,
   updateUserValidation,
@@ -152,7 +152,7 @@ export const deleteUser = async (
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
     // Extract query parameters with default values
-    const { id } = req.user;
+    const { id, department } = req.user;
 
     const roleID = req.query.roleID as string | "";
     const limit = parseInt(req.query.limit as string) || 10;
@@ -183,11 +183,19 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
         }
       : {};
 
+    const departmentFilter =
+      department != Department.ADMIN
+        ? { department: department as Department }
+        : { department: {} };
+
+    console.log("Department Filter:", departmentFilter);
+
     // Fetch users with optional role filtering and pagination
     const users = await db.user.findMany({
       where: {
         ...roleFilter,
         ...searchFilter,
+        ...departmentFilter,
         id: { not: id },
       },
       take: limit,
@@ -214,6 +222,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
     const totalUsers = await db.user.count({
       where: {
         ...roleFilter,
+        ...departmentFilter,
         id: { not: id },
       },
     });
