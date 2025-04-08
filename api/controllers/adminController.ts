@@ -173,7 +173,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
     const searchFilter = search
       ? {
           OR: [
-            { name: { contains: search, mode: Prisma.QueryMode.insensitive } },
+            { name: { contains: search } },
             { email: { contains: search, mode: Prisma.QueryMode.insensitive } },
             { phone: { contains: search, mode: Prisma.QueryMode.insensitive } },
             {

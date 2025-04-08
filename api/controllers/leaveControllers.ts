@@ -592,3 +592,48 @@ export const getAllApprovedLeaves = async (
       .json({ error: serverError.internalServerError });
   }
 };
+
+export const getAllLeavesForChart = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const leaves = await db.userLeaveTable.findMany({
+      orderBy: { availableLeave: "asc" },
+      select: {
+        userId: true,
+        user: {
+          select: {
+            name: true,
+            department: true,
+            role: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        availableLeave: true,
+        totalLeaves: true,
+      },
+    });
+
+    const leaveChartData = leaves.map((leave) => {
+      return {
+        userId: leave.userId,
+        department: leave.user.department,
+        role: leave.user.role.name,
+        name: leave.user.name,
+        usedLeaves: 30 - leave.availableLeave,
+        totalLeaves: leave.totalLeaves,
+      };
+    });
+
+    res.status(200).json({ data: leaveChartData });
+  } catch (error) {
+    console.error("Error fetching leaves for chart:", error);
+    res
+      .status(statusCodes.internalServerError)
+      .json({ error: serverError.internalServerError });
+  }
+};

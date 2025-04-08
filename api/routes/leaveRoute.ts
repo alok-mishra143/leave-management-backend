@@ -4,6 +4,7 @@ import {
   deleteLeave,
   EditLeave,
   getAllApprovedLeaves,
+  getAllLeavesForChart,
   getLeaveBalance,
   getPersonalLeave,
   getTeacherForLeave,
@@ -37,6 +38,8 @@ leaveRouter.get(
   auth([Role.STUDENT, Role.ADMIN, Role.STAFF, Role.HOD]),
   getTeacherForLeave
 );
+leaveRouter.get("/chart", auth([Role.ADMIN]), getAllLeavesForChart);
+
 leaveRouter.get(
   "/dashboard",
   auth([Role.STUDENT, Role.ADMIN, Role.STAFF, Role.HOD]),
