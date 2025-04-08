@@ -3,6 +3,7 @@ import studentRoute from "./studentRoute";
 import authRoute from "./authRoute";
 import leaveRouter from "./leaveRoute";
 import uploadRouter from "./uploadRoute";
+import blogRouter from "./blogRoute";
 import express from "express";
 const router = express.Router();
 
@@ -15,8 +16,10 @@ const allRoutes = [
 ];
 
 allRoutes.forEach((route) => {
-  console.log("this Route is online ✅ ", route.name);
+  console.log("this Route is online ✅ ", route.name, route.path);
   router.use(route.route);
 });
+
+router.use("/blogs", blogRouter);
 
 export default router;

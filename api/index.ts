@@ -5,6 +5,7 @@ import cors from "cors";
 import { job } from "./cron/cronJob";
 import session from "express-session";
 import path from "path";
+import blogRouter from "./routes/blogRoute";
 
 const passPortSetup = require("./controllers/oAuth/oAuth");
 
@@ -33,6 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(router);
+// app.use("/blogs", blogRouter);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port http://localhost:${PORT}`);
